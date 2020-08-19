@@ -1,6 +1,6 @@
 ThisBuild / name := "scala-sbt-spark"
 ThisBuild / scalaVersion := "2.12.12"
-ThisBuild / organization := "com.sbchapin"
+ThisBuild / organization := "com.hgdata"
 ThisBuild / scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 ThisBuild / javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
 
@@ -118,7 +118,7 @@ lazy val assemblySettings = Seq(
 /** These settings allow projects that use them to...
   * - Use the name, description, verison, and build time within the context of the program
   * - Not recklessly repeat strings found all over the build
-  * - import com.sbchapin.generated.BuildInfo
+  * - import com.hgdata.generated.BuildInfo
   */
 lazy val buildInfoSettings = Seq(
   buildInfoKeys := Seq[BuildInfoKey](
@@ -132,5 +132,5 @@ lazy val buildInfoSettings = Seq(
     BuildInfoOption.BuildTime,
     BuildInfoOption.ConstantValue,
   ),
-  buildInfoPackage := "com.sbchapin.generated",
+  buildInfoPackage := "com.hgdata.generated",
 )

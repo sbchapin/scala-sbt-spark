@@ -39,7 +39,7 @@
         </Logger>
 
         <!--All self-domain logs -->
-        <Logger name="com.sbchapin" level="TRACE" additivity="false">
+        <Logger name="com.hgdata" level="TRACE" additivity="false">
             <AppenderRef ref="RollingFile"/>
             <AppenderRef ref="Console"/>
         </Logger>

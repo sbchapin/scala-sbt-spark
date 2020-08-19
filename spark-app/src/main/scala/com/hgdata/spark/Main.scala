@@ -1,9 +1,9 @@
-package com.sbchapin.spark
+package com.hgdata.spark
 
 import java.util
 import java.util.concurrent.Callable
 
-import com.sbchapin.generated.BuildInfo
+import com.hgdata.generated.BuildInfo
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine

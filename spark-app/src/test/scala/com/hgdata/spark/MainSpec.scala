@@ -1,4 +1,4 @@
-package com.sbchapin.spark
+package com.hgdata.spark
 
 import org.scalatest.FunSpec
 import picocli.CommandLine

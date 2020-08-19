@@ -1,4 +1,4 @@
-package com.sbchapin.spark
+package com.hgdata.spark
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.spark.sql.SparkSession

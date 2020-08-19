@@ -204,15 +204,6 @@ object Main extends LazyLogging {
 - `sbt dependencyTree` will print to terminal a text-based tree of dependencies.
 - `sbt dependencyStats` will give a breakdown of largest and most connected dependencies.
 
-
-
-## Who do I talk to? ##
-
-- Email: chap.s.b@gmail.com
-- Github: https://github.com/sbchapin/
-- Bitbucket: https://bitbucket.org/sbchapin/
-- Discord: sbchapin#7435
-
 ## What's the future of this repo? ##
 
 - Keep this baby up to date

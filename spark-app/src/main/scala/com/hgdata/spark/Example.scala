@@ -1,4 +1,4 @@
-package com.sbchapin.spark
+package com.hgdata.spark
 
 import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 
