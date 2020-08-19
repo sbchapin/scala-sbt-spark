@@ -2,7 +2,9 @@
 
 A multi-project build for Spark-based applications.
 
-- `./commons`
+- `./commons` - Common behavior among scala-sbt-spark projects
+- `./spark-app` - Standard spark application, for usage with spark-submit
+- `./{your}-app` - Add an application _(It's easy, just an sbt entry away!)_
 
 # Includes... #
 
