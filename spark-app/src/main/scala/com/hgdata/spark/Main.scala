@@ -46,7 +46,7 @@ object Main extends Callable[Integer] with LazyLogging {
   private[spark] var outputPath: String = _
 
   def main(args: Array[String]): Unit = {
-    System.exit(new CommandLine(this).execute(args:_*))
+    new CommandLine(this).execute(args:_*)
   }
 
   @throws[Exception]
