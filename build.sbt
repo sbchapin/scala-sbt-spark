@@ -71,8 +71,8 @@ lazy val baseDeps = Seq(
 /** Dependencies for Spark and friends */
 lazy val sparkDeps = Seq(
   // Spark:
-  "org.apache.spark" %% "spark-core" % "3.0.0" % Provided,
-  "org.apache.spark" %% "spark-sql" % "3.0.0" % Provided,
+  "org.apache.spark" %% "spark-core" % "2.4.5" % Provided,
+  "org.apache.spark" %% "spark-sql" % "2.4.5" % Provided,
 )
 
 // SETTINGS:
