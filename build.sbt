@@ -1,5 +1,5 @@
 ThisBuild / name := "scala-sbt-spark"
-ThisBuild / scalaVersion := "2.12.12"
+ThisBuild / scalaVersion := "2.11.11"
 ThisBuild / organization := "com.hgdata"
 ThisBuild / scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 ThisBuild / javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
@@ -25,7 +25,7 @@ lazy val common = (project in file("common"))
     baseSettings,
     // Dependencies:
     libraryDependencies ++= baseDeps,
-    libraryDependencies ++= sparkDeps,
+    libraryDependencies ++= sparkDeps
   )
 
 // Application: Standard Spark
@@ -71,6 +71,7 @@ lazy val sparkIntentApp = (project in file("spark-intent-app"))
     // Dependencies:
     libraryDependencies ++= baseDeps,
     libraryDependencies ++= sparkDeps,
+    libraryDependencies ++= hudiDeps,
     libraryDependencies ++= appDeps
   )
 
@@ -93,8 +94,15 @@ lazy val baseDeps = Seq(
 /** Dependencies for Spark and friends */
 lazy val sparkDeps = Seq(
   // Spark:
-  "org.apache.spark" %% "spark-core" % "2.4.5" % Provided,
-  "org.apache.spark" %% "spark-sql" % "2.4.5" % Provided,
+  "org.apache.spark" %% "spark-core" % "2.4.4" % Provided,
+  "org.apache.spark" %% "spark-sql" % "2.4.4" % Provided,
+)
+/** Dependencies for Hudi and friends */
+lazy val hudiDeps = Seq(
+  // Hudi
+  "org.apache.hudi" %% "hudi-spark-bundle" % "0.5.3",
+  "org.apache.spark" %% "spark-avro" % "2.4.4", // for hudi
+  "org.apache.httpcomponents" % "httpclient" % "4.3.3", // for hudi
 )
 /** Dependencies for Applications (not libraries) */
 lazy val appDeps = Seq(
@@ -136,7 +144,11 @@ lazy val assemblySettings = Seq(
   assemblyJarName in assembly := name.value + ".jar",
   assemblyMergeStrategy in assembly := {
     // discard:
+    case "overview.html" => MergeStrategy.discard
     case x if x.endsWith("/module-info.class") => MergeStrategy.discard
+    case x if x.endsWith("/spark/unused/UnusedStubClass.class") => MergeStrategy.discard
+    // take last...
+    case PathList("org", "apache", "http", _*) => MergeStrategy.last
     // ...otherwise default to old strategy:
     case x => (assemblyMergeStrategy in assembly).value(x)
   }
