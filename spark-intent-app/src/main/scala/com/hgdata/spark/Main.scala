@@ -17,7 +17,7 @@ import picocli.CommandLine.{Command, Option}
   version = Array(BuildInfo.version + " (" + BuildInfo.builtAtString + ")"),
   description = Array(BuildInfo.description)
 )
-object Main extends Callable[Integer] with LazyLogging {
+object Main extends Runnable with LazyLogging {
   @Option(
     names = Array("-i", "--input"),
     required = true,
@@ -33,11 +33,12 @@ object Main extends Callable[Integer] with LazyLogging {
   private[spark] var outputPath: String = _
 
   def main(args: Array[String]): Unit = {
-    new CommandLine(this).execute(args:_*)
+    val exitCode = new CommandLine(this).execute(args:_*)
+    if (exitCode != 0) throw new RuntimeException(s"Process exited with status code ${exitCode}")
   }
 
   @throws[Exception]
-  override def call: Integer = {
+  override def run(): Unit = {
     SparkSessionManager().withSpark { implicit spark: SparkSession =>
       // I/O, lazily wired:
       lazy val rawIntentReader: Reader = new Reader.RawIntent(inputPath)
@@ -48,6 +49,5 @@ object Main extends Callable[Integer] with LazyLogging {
 
       prep.run()
     }
-    0 // success
   }
 }

@@ -110,6 +110,10 @@ lazy val appDeps = Seq(
   "info.picocli" % "picocli" % "4.5.0"
 )
 
+// TASKS:
+
+lazy val sparkSubmit = inputKey[Unit]("Execute spark-submit with the assembled application.  Pass arguments as you would to spark-submit.")
+
 // SETTINGS:
 
 /** These settings allow projects that use them to...
@@ -151,6 +155,18 @@ lazy val assemblySettings = Seq(
     case PathList("org", "apache", "http", _*) => MergeStrategy.last
     // ...otherwise default to old strategy:
     case x => (assemblyMergeStrategy in assembly).value(x)
+  },
+
+  // Custom tasks to run spark-submit on assembled jars.
+  // ex: sbt sparkSubmit --help
+  sparkSubmit := {
+    import scala.sys.process._
+    import complete.DefaultParsers._
+    // Gather all args after the sparksSubmit task
+    val args = spaceDelimited("<arg>").parsed
+    // Run assembly
+    val assemblyOutput = (Compile / assembly).value
+    s"spark-submit ${assemblyOutput.getPath} ${args.mkString(" ")}" !
   }
 )
 
@@ -169,7 +185,7 @@ lazy val buildInfoSettings = Seq(
   ),
   buildInfoOptions ++= Seq(
     BuildInfoOption.BuildTime,
-    BuildInfoOption.ConstantValue,
+    BuildInfoOption.ConstantValue
   ),
   buildInfoPackage := "com.hgdata.generated",
 )

@@ -56,7 +56,9 @@ sbt clean
 
 If you want to run **while the repo is present...**
 ```sh
-sbt sparkApp/run
+# Note that this requires `spark-shell` be installed.
+# It is suggested to run `brew install spark`
+sbt sparkApp/sparkSubmit --help
 ```
 
 ---
@@ -69,7 +71,9 @@ If you want to run **in isolation...**
 A quick sanity check can be done via the following:
 ```sh
 sbt assembly
-spark-submit spark-app/target/scala*/spark-app.jar
+spark-submit spark-app/target/scala*/spark-app.jar --help
+# ...or, simply...
+sbt sparkApp/sparkSubmit --help
 ```
 
 
