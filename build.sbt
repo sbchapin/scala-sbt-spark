@@ -81,7 +81,7 @@ lazy val sparkIntentApp = (project in file("spark-intent-app"))
 lazy val baseDeps = Seq(
   // Logging interface:
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-  "org.slf4j" % "slf4j-api" % "1.7.25",                              // slf4j as logging interface
+  "org.slf4j" % "slf4j-api" % "1.7.26",                              // slf4j as logging interface
 
   // Testing:
   "org.scalatest" %% "scalatest" % "3.0.8" % Test,
