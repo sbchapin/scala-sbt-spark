@@ -5,7 +5,6 @@ import java.nio.file.Files
 
 trait IOHelpers {
 
-
   /**
     * Create a temporary file that will be cleaned up by the JVM
     * @param contents What to put in the file (UTF-8)
