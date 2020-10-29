@@ -16,6 +16,11 @@ class MainSpec extends FunSpec {
         assert(main.inputPath == "a" && main.outputPath == "b")
       }
 
+      it("should be able to parse --database") {
+        new CommandLine(main).parseArgs(baseOptions ++ Array("--database", "d"):_*)
+        assert(main.hiveDatabase == "d")
+      }
+
       it("should be able to parse --help") {
         val result = new CommandLine(main).parseArgs("--help")
         assert(result.isUsageHelpRequested)
