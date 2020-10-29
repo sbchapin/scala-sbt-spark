@@ -26,7 +26,7 @@ class SparkSessionManager(sparkConfigs: Map[String, String]) extends LazyLogging
 
 /** Companion object */
 object SparkSessionManager {
-  def apply(sparkConfigs: Map[String, String]): SparkSessionManager = new SparkSessionManager(sparkConfigs)
+  def apply(sparkConfigs: Map[String, String] = Map.empty): SparkSessionManager = new SparkSessionManager(sparkConfigs)
   def apply(sparkConfigs: java.util.Map[String, String]): SparkSessionManager = {
     // convert and clean java map to scala:
     val scalaSparkConfigs = for {

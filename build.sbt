@@ -12,6 +12,7 @@ lazy val root = (project in file("."))
   .aggregate(
     common,
     sparkApp,
+    sparkIntentApp
   )
 
 // Library: Common behavior among projects
@@ -47,9 +48,30 @@ lazy val sparkApp = (project in file("spark-app"))
     // Dependencies:
     libraryDependencies ++= baseDeps,
     libraryDependencies ++= sparkDeps,
-    libraryDependencies ++= Seq(
-      "info.picocli" % "picocli" % "4.5.0"
-    ),
+    libraryDependencies ++= appDeps
+  )
+
+// Application: Standard Spark
+lazy val sparkIntentApp = (project in file("spark-intent-app"))
+  .dependsOn(common)
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    name := "spark-intent-app",
+    description :=
+      """Spark app to prep intent data, for usage with spark-submit.
+        |
+        |Example usage:
+        |  spark-submit spark-intent-app.jar --help
+        |""".stripMargin,
+    version := "0.0.0",
+    // Settings:
+    baseSettings,
+    assemblySettings,
+    buildInfoSettings,
+    // Dependencies:
+    libraryDependencies ++= baseDeps,
+    libraryDependencies ++= sparkDeps,
+    libraryDependencies ++= appDeps
   )
 
 // DEPENDENCIES:
@@ -73,6 +95,11 @@ lazy val sparkDeps = Seq(
   // Spark:
   "org.apache.spark" %% "spark-core" % "2.4.5" % Provided,
   "org.apache.spark" %% "spark-sql" % "2.4.5" % Provided,
+)
+/** Dependencies for Applications (not libraries) */
+lazy val appDeps = Seq(
+  // Arg parsing:
+  "info.picocli" % "picocli" % "4.5.0"
 )
 
 // SETTINGS:
