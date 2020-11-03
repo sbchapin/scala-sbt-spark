@@ -1,0 +1,33 @@
+version: '3.8'
+x-common: &common
+  build: .
+  restart: on-failure
+  environment:
+    - AIRFLOW__CORE__SQL_ALCHEMY_CONN=postgresql+psycopg2://airflow:airflow@postgres/airflow
+    - AIRFLOW__CORE__EXECUTOR=LocalExecutor
+    - AIRFLOW__CORE__FERNET_KEY=xcI4ArFxeU8EExwK5BmHHOvI63P4GCCFlLtbKch2Va8= # https://airflow.readthedocs.io/en/stable/howto/secure-connections.html#securing-connections
+    - AWS_DEFAULT_REGION=${AWS_DEFAULT_REGION:-us-west-2}
+    - AWS_PROFILE=${ENV:-staging}
+  volumes:
+    - ~/.aws:/home/airflow/.aws
+    - ./dags:/opt/airflow/dags
+    - ./logs:/opt/airflow/logs
+    - ./scripts:/opt/airflow/scripts
+services:
+  postgres:
+    image: postgres
+    environment:
+      - POSTGRES_USER=airflow
+      - POSTGRES_PASSWORD=airflow
+      - POSTGRES_DB=airflow
+  scheduler:
+    <<: *common
+    command: scheduler
+  airflow:
+    <<: *common
+    entrypoint: /bin/bash -c "airflow initdb && airflow webserver --port 8000"
+    ports:
+      - 8000:8000
+    depends_on:
+      - postgres
+      - scheduler

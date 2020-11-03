@@ -1,8 +1,10 @@
 # Mac files
 *.DS_Store
 
-# file ignores
+# log ignores
 *.log
+**/logs/*
+**/log/*
 
 # build files
 /classes/
@@ -11,6 +13,7 @@
 /out/
 target/
 /lib_managed/
+**/__pycache__/
 *.jar
 *.class
 
@@ -20,4 +23,5 @@ target/
 *.ipr
 *.iws
 
-# data
+# keep any .gitkeep files, regardless of ignores
+!**/.gitkeep
