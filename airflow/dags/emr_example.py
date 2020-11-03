@@ -18,7 +18,7 @@ DEFAULT_ARGS = {
     'email_on_retry': False,
 }
 
-SPARK_STEPS = [
+EMR_STEPS = [
     {
         'Name': 'calculate_pi',
         'ActionOnFailure': 'CONTINUE',
@@ -57,7 +57,7 @@ JOB_FLOW_OVERRIDES = {
 }
 
 with DAG(
-    dag_id='emr_job_flow_manual_steps_dag',
+    dag_id='emr_example',
     default_args=DEFAULT_ARGS,
     dagrun_timeout=timedelta(hours=2),
     start_date=days_ago(2),
@@ -75,14 +75,16 @@ with DAG(
         task_id='add_steps',
         job_flow_id="{{ task_instance.xcom_pull(task_ids='create_job_flow', key='return_value') }}",
         aws_conn_id='aws_default',
-        steps=SPARK_STEPS,
+        steps=EMR_STEPS,
     )
 
-    step_checker = EmrStepSensor(
-        task_id='watch_step',
-        job_flow_id="{{ task_instance.xcom_pull('create_job_flow', key='return_value') }}",
-        step_id="{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')[0] }}",
-        aws_conn_id='aws_default',
+    step_checkers = list(
+        EmrStepSensor(
+            task_id=f'watch_step_{i}',
+            job_flow_id="{{ task_instance.xcom_pull('create_job_flow', key='return_value') }}",
+            step_id=f"{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')[{i}] }}",
+            aws_conn_id='aws_default',
+        ) for i, step in enumerate(EMR_STEPS)
     )
 
     cluster_remover = EmrTerminateJobFlowOperator(
@@ -91,4 +93,4 @@ with DAG(
         aws_conn_id='aws_default',
     )
 
-    cluster_creator >> step_adder >> step_checker >> cluster_remover
+    cluster_creator >> step_adder >> step_checkers >> cluster_remover
