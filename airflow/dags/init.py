@@ -17,16 +17,13 @@ variables = {
     'fac_egg_path':    's3://hg-code/jars/functional-area-classifier/release/PDx2w2BB/fac.egg'
 }
 
-def initialize_variables():
-    responses = []
-    for variable_name, default_value in variables.items():
-        actual_value = Variable.setdefault(variable_name, default = default_value)
-        if actual_value == default_value:
-          responses.append(f"{variable_name} <- {default_value}")
-        else:
-          Variable.set(variable_name, default_value)
-          responses.append(f"{variable_name} <- {default_value} (was previously {actual_value})")
-    return 'airflow variables updated:\n' + '\n'.join(responses)
+def initialize_variable(variable_name, variable_value):
+    actual_value = Variable.setdefault(variable_name, default = variable_value)
+    if actual_value == variable_value:
+      return f"{variable_name} <- {variable_value}"
+    else:
+      Variable.set(variable_name, variable_value)
+      return f"{variable_name} <- {variable_value} (was previously {actual_value})"
 
 with DAG(
     'init_vars',
@@ -35,7 +32,13 @@ with DAG(
     schedule_interval='@once',
     catchup=False
 ) as dag:
-    PythonOperator(
-        task_id='initialize_variables',
-        python_callable=initialize_variables,
-    )
+    for variable_name, default_value in variables.items():
+        op = PythonOperator(
+            task_id=f"initialize_variable_{variable_name}",
+            python_callable=initialize_variable,
+            op_kwargs={
+                'variable_name': variable_name,
+                'variable_value': default_value,
+            }
+        )
+        dag << op
