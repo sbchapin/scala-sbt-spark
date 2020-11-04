@@ -50,24 +50,67 @@ JOB_FLOW_OVERRIDES = {
         'InstanceGroups': [
             {
                 'Name': 'Master node',
-                'Market': 'SPOT',
+                'Market': 'ON_DEMAND',
                 'InstanceRole': 'MASTER',
-                'InstanceType': 'm1.medium',
+                'InstanceType': 'm5a.xlarge',
                 'InstanceCount': 1,
+                'EbsConfiguration': {
+                    'EbsBlockDeviceConfigs': [
+                        {
+                            'VolumeSpecification': { 'SizeInGB': 64, 'VolumeType': 'gp2' },
+                            'VolumesPerInstance': 1
+                        }
+                    ]
+                }
             },
             {
                 'Name': 'Core node',
                 'Market': 'SPOT',
                 'InstanceRole': 'CORE',
-                'InstanceType': 'm1.medium',
+                'InstanceType': 'm5.2xlarge',
                 'InstanceCount': 1,
+                'EbsConfiguration': {
+                    'EbsBlockDeviceConfigs': [
+                        {
+                            'VolumeSpecification': { 'SizeInGB': 64, 'VolumeType': 'gp2' },
+                            'VolumesPerInstance': 1
+                        }
+                    ]
+                }
             }
         ],
         'KeepJobFlowAliveWhenNoSteps': True,
         'TerminationProtected': False,
+        'Ec2KeyName': f"{DEFAULT_ARGS['owner']}",
+        "SubnetId": '{{ var.value.emr.subnet }}',
+        "ServiceAccessSecurityGroup": '{{ var.value.emr.service_access_sg }}',
+        "EmrManagedMasterSecurityGroup": '{{ var.value.emr.managed_master_sg }}',
+        "EmrManagedSlaveSecurityGroup": '{{ var.value.emr.managed_slave_sg }}',
+        "AdditionalMasterSecurityGroups":[ '{{ var.value.emr.additional_master_sg }}' ]
     },
-    'JobFlowRole': 'EMR_EC2_DefaultRole',
-    'ServiceRole': 'EMR_DefaultRole',
+    'Applications': [
+        { 'Name': 'Spark' },
+        { 'Name': 'Hadoop' },
+        { 'Name': 'Hive' },
+        { 'Name': 'Ganglia' },
+        { 'Name': 'Tez' },
+    ],
+    'Configurations': [
+        {
+            'Classification': 'spark',
+            'Properties': { 'maximizeResourceAllocation': 'true' }
+        },
+        {
+            'Classification': 'hive-site',
+            'Properties': { 'hive.metastore.client.factory.class': 'com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory' }
+        },
+        {
+            'Classification': 'spark-hive-site',
+            'Properties': { 'hive.metastore.client.factory.class': 'com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory' }
+        },
+    ],
+    'JobFlowRole': '{{ var.value.emr.job_flow_role }}',
+    'ServiceRole': '{{ var.value.emr.service_role }}',
 }
 
 with DAG(
@@ -77,10 +120,17 @@ with DAG(
     schedule_interval='0 0 * * 6' # At 00:00 on Saturday.
 ) as dag:
 
-    block_on_var = ExternalTaskSensor(
-        task_id="init_var.intent_jar_path",
+    block_on_dynamics = ExternalTaskSensor(
+        task_id="init_var.intent",
         external_dag_id="init",
-        external_task_id="init_var.intent_jar_path",
+        external_task_id="init_var.intent",
+        mode="reschedule"
+    )
+
+    block_on_statics = ExternalTaskSensor(
+        task_id="init_var.emr",
+        external_dag_id="init",
+        external_task_id="init_var.emr",
         mode="reschedule"
     )
 
@@ -105,7 +155,6 @@ with DAG(
         emr_conn_id='emr_default',
     )
 
-
     add_steps = EmrAddStepsOperator(
         task_id='add_steps',
         job_flow_id="{{ task_instance.xcom_pull(task_ids='create_job_flow', key='return_value') }}",
@@ -128,5 +177,5 @@ with DAG(
         aws_conn_id='aws_default',
     )
 
-    [block_on_var, wait_for_delivery] >> create_job_flow >> add_steps >> step_watchers >> terminate_job_flow
-    wait_for_delivery >> wait_for_raw_copy_completion >> add_steps
+    [block_on_statics, block_on_dynamics] >> create_job_flow
+    wait_for_delivery >> wait_for_raw_copy_completion >> create_job_flow >> add_steps >> step_watchers >> terminate_job_flow

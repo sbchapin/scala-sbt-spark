@@ -13,9 +13,25 @@ default_args = {
     'email_on_retry': False,
 }
 
-variables = {
-    'fac_script_path': 's3://hg-code/jars/functional-area-classifier/release/PDx2w2BB/spark-harness.py',
-    'fac_egg_path':    's3://hg-code/jars/functional-area-classifier/release/PDx2w2BB/fac.egg'
+namespaced_variables = {
+    # EMR 'static' info:
+    'emr': {
+        'service_role': 'EMR_DefaultRole',
+        'subnet': 'subnet-009a9797c4792fc5b',
+        'service_access_sg': 'sg-098b38ba6b301e1cf',
+        'managed_master_sg': 'sg-09f51e293f629ab3d',
+        'managed_slave_sg': 'sg-09f51e293f629ab3d',
+        'additional_master_sg': 'sg-01da613a73986c02a',
+    },
+    # 'functional area classifier' configuration:
+    'fac': {
+        'script_path': 's3://hg-code/jars/functional-area-classifier/release/PDx2w2BB/spark-harness.py',
+        'egg_path':    's3://hg-code/jars/functional-area-classifier/release/PDx2w2BB/fac.egg',
+    },
+    # 'intent' configuration:
+    'intent': {
+        'jar_path': 's3://hg-code/jars/intent/release/PDx2w2BB/spark-harness.py',
+    }
 }
 
 def initialize_variable(variable_name, variable_value):
@@ -36,13 +52,16 @@ with DAG(
 
     end = DummyOperator(task_id = "end")
 
-    for variable_name, default_value in variables.items():
-        op = PythonOperator(
-            task_id=f"init_var.{variable_name}",
-            python_callable=initialize_variable,
-            op_kwargs={
-                'variable_name': variable_name,
-                'variable_value': default_value,
-            }
-        )
-        op >> end
+    for namespace, variables in namespaced_variables.items():
+        ns = DummyOperator(task_id = f"init_var.{namespace}")
+        for variable_name, default_value in variables.items():
+            op = PythonOperator(
+                task_id=f"init_var.{namespace}.{variable_name}",
+                python_callable=initialize_variable,
+                op_kwargs={
+                    'variable_name': variable_name,
+                    'variable_value': default_value,
+                }
+            )
+            op >> ns
+        ns >> end
