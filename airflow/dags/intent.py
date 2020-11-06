@@ -14,10 +14,6 @@ from airflow.sensors.time_delta_sensor import TimeDeltaSensor
 from airflow.utils.dates import days_ago
 from airflow.models import Variable
 
-# TODO: Still needs...
-# - Input & Output path parameterization
-# - Public subnet & static security group references (consider vars)
-
 DEFAULT_ARGS = {
     'owner': 'core-ip',
     'depends_on_past': False,
@@ -25,6 +21,12 @@ DEFAULT_ARGS = {
     'email_on_failure': False,
     'email_on_retry': False,
 }
+
+DELIVERY_BUCKET = 'hg-raw-docs'
+DELIVERY_PREFIX = 'intent/46/ingress/{{ ds }}/'
+
+TRANSFORMED_BUCKET = 'hg-transformed-docs'
+TRANSFORMED_PREFIX = 'intent/46/hudi/'
 
 EMR_STEPS = [
     {
@@ -35,9 +37,11 @@ EMR_STEPS = [
             'Args': [
                 'spark-submit',
                 '--deploy-mode', 'client',
+                '--class', 'com.hgdata.spark.Main',
                 '{{ var.value.intent_jar_path }}',
-                '--input', "{{ task_instance.xcom_pull(task_ids='wait_for_delivery', key='return_value') }}",
-                '--output', "s3://hg-testing/intent/46/hudi/"
+                '--input', f"s3://{DELIVERY_BUCKET}/{DELIVERY_PREFIX}",
+                '--output', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_PREFIX}",
+                '--database', 'hg_intent',
              ],
         },
     }
@@ -46,6 +50,7 @@ EMR_STEPS = [
 JOB_FLOW_OVERRIDES = {
     'Name': f"{DEFAULT_ARGS['owner']}-intent",
     'ReleaseLabel': 'emr-5.31.0',
+    'LogUri': 's3://hg-logs/emr-logs/',
     'Instances': {
         'InstanceGroups': [
             {
@@ -79,14 +84,14 @@ JOB_FLOW_OVERRIDES = {
                 }
             }
         ],
-        'KeepJobFlowAliveWhenNoSteps': True,
+        'KeepJobFlowAliveWhenNoSteps': False,
         'TerminationProtected': False,
         'Ec2KeyName': f"{DEFAULT_ARGS['owner']}",
-        "SubnetId": '{{ var.value.emr.subnet }}',
-        "ServiceAccessSecurityGroup": '{{ var.value.emr.service_access_sg }}',
-        "EmrManagedMasterSecurityGroup": '{{ var.value.emr.managed_master_sg }}',
-        "EmrManagedSlaveSecurityGroup": '{{ var.value.emr.managed_slave_sg }}',
-        "AdditionalMasterSecurityGroups":[ '{{ var.value.emr.additional_master_sg }}' ]
+        "Ec2SubnetId": '{{ var.value.emr_subnet }}',
+        "ServiceAccessSecurityGroup": '{{ var.value.emr_service_access_sg }}',
+        "EmrManagedMasterSecurityGroup": '{{ var.value.emr_managed_master_sg }}',
+        "EmrManagedSlaveSecurityGroup": '{{ var.value.emr_managed_slave_sg }}',
+        "AdditionalMasterSecurityGroups":[ '{{ var.value.emr_additional_master_sg }}' ]
     },
     'Applications': [
         { 'Name': 'Spark' },
@@ -109,8 +114,8 @@ JOB_FLOW_OVERRIDES = {
             'Properties': { 'hive.metastore.client.factory.class': 'com.amazonaws.glue.catalog.metastore.AWSGlueDataCatalogHiveClientFactory' }
         },
     ],
-    'JobFlowRole': '{{ var.value.emr.job_flow_role }}',
-    'ServiceRole': '{{ var.value.emr.service_role }}',
+    'JobFlowRole': '{{ var.value.emr_job_flow_role }}',
+    'ServiceRole': '{{ var.value.emr_service_role }}',
 }
 
 with DAG(
@@ -120,32 +125,13 @@ with DAG(
     schedule_interval='0 0 * * 6' # At 00:00 on Saturday.
 ) as dag:
 
-    block_on_dynamics = ExternalTaskSensor(
-        task_id="init_var.intent",
-        external_dag_id="init",
-        external_task_id="init_var.intent",
-        mode="reschedule"
-    )
-
-    block_on_statics = ExternalTaskSensor(
-        task_id="init_var.emr",
-        external_dag_id="init",
-        external_task_id="init_var.emr",
-        mode="reschedule"
-    )
-
     wait_for_delivery = S3PrefixSensor(
         task_id="wait_for_delivery",
-        bucket_name = 'hg-raw-docs',
+        bucket_name = DELIVERY_BUCKET,
         timeout = timedelta(days=1).total_seconds(), # if it isn't delivered after a day, give up
         poke_interval = timedelta(hours=1).total_seconds(), # check hourly
-        prefix = 'intent/46/ingress/{{ ds }}/',
+        prefix = DELIVERY_PREFIX,
         aws_conn_id = "aws_default"
-    )
-
-    wait_for_raw_copy_completion = TimeDeltaSensor(
-        task_id='wait_five_minutes',
-        delta=timedelta(minutes=5),
     )
 
     create_job_flow = EmrCreateJobFlowOperator(
@@ -166,7 +152,7 @@ with DAG(
         EmrStepSensor(
             task_id=f'watch_step_{i}',
             job_flow_id="{{ task_instance.xcom_pull('create_job_flow', key='return_value') }}",
-            step_id=f"{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')[{i}] }}",
+            step_id=f"{{{{ task_instance.xcom_pull(task_ids='add_steps', key='return_value')[{i}] }}}}",
             aws_conn_id='aws_default',
         ) for i, step in enumerate(EMR_STEPS)
     )
@@ -177,5 +163,4 @@ with DAG(
         aws_conn_id='aws_default',
     )
 
-    [block_on_statics, block_on_dynamics] >> create_job_flow
-    wait_for_delivery >> wait_for_raw_copy_completion >> create_job_flow >> add_steps >> step_watchers >> terminate_job_flow
+    wait_for_delivery >> create_job_flow >> add_steps >> step_watchers >> terminate_job_flow

@@ -16,6 +16,7 @@ default_args = {
 namespaced_variables = {
     # EMR 'static' info:
     'emr': {
+        'job_flow_role': 'EMR_EC2_DefaultRole',
         'service_role': 'EMR_DefaultRole',
         'subnet': 'subnet-009a9797c4792fc5b',
         'service_access_sg': 'sg-098b38ba6b301e1cf',
@@ -30,7 +31,7 @@ namespaced_variables = {
     },
     # 'intent' configuration:
     'intent': {
-        'jar_path': 's3://hg-code/jars/intent/release/PDx2w2BB/spark-harness.py',
+        'jar_path': 's3://hg-code/jars/intent/spark-intent-app/build/COREIP-26-airflow.jar',
     }
 }
 
@@ -55,11 +56,12 @@ with DAG(
     for namespace, variables in namespaced_variables.items():
         ns = DummyOperator(task_id = f"init_var.{namespace}")
         for variable_name, default_value in variables.items():
+            namespaced_variable_name = f"{namespace}_{variable_name}"
             op = PythonOperator(
-                task_id=f"init_var.{namespace}.{variable_name}",
+                task_id=f"init_var.{namespaced_variable_name}",
                 python_callable=initialize_variable,
                 op_kwargs={
-                    'variable_name': variable_name,
+                    'variable_name': namespaced_variable_name,
                     'variable_value': default_value,
                 }
             )
