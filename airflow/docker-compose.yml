@@ -14,15 +14,19 @@ x-common: &common
     - ./logs:/opt/airflow/logs
     - ./scripts:/opt/airflow/scripts
 services:
+
   postgres:
     image: postgres
     environment:
       - POSTGRES_USER=airflow
       - POSTGRES_PASSWORD=airflow
       - POSTGRES_DB=airflow
+
   scheduler:
     <<: *common
     command: scheduler
+
+  # docker-compose up -d airflow
   airflow:
     <<: *common
     entrypoint: /bin/bash -c "airflow initdb && airflow webserver --port 8000"
@@ -31,3 +35,11 @@ services:
     depends_on:
       - postgres
       - scheduler
+
+  # docker-compose run cli
+  # airflow list_dags
+  cli:
+    <<: *common
+    stdin_open: true
+    tty: true
+    entrypoint: /bin/bash
