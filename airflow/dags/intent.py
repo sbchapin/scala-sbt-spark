@@ -2,7 +2,7 @@
 This is the DAG for running the spark-intent-app within an AWS EMR Pipeline, using airflow.
 """
 from datetime import timedelta
-from os import environ
+from os import getenv
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.operators.emr_add_steps import EmrAddStepsOperator
@@ -22,6 +22,8 @@ DEFAULT_ARGS = {
     'email_on_failure': False,
     'email_on_retry': False,
 }
+
+ENV = getenv('ENV', default='staging')
 
 DELIVERY_BUCKET = 'hg-raw-docs'
 DELIVERY_PREFIX = 'intent/46/ingress/{{ ds }}/'
@@ -49,7 +51,7 @@ EMR_STEPS = [
 ]
 
 JOB_FLOW_OVERRIDES = {
-    'Name': f"{DEFAULT_ARGS['owner']}-intent",
+    'Name': f"{DEFAULT_ARGS['owner']}-${ENV}-intent",
     'ReleaseLabel': 'emr-5.31.0',
     'LogUri': 's3://hg-logs/emr-logs/',
     'Tags': [
@@ -58,7 +60,7 @@ JOB_FLOW_OVERRIDES = {
             'Value': DEFAULT_ARGS['owner']
         }, {
             'Key': 'env',
-            'Value': environ.get('ENV')
+            'Value': ENV
         },
     ],
     'Instances': {
