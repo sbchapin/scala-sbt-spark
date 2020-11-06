@@ -2,6 +2,7 @@
 This is the DAG for running the spark-intent-app within an AWS EMR Pipeline, using airflow.
 """
 from datetime import timedelta
+from os import environ
 from airflow import DAG
 from airflow.operators.dummy_operator import DummyOperator
 from airflow.providers.amazon.aws.operators.emr_add_steps import EmrAddStepsOperator
@@ -51,6 +52,15 @@ JOB_FLOW_OVERRIDES = {
     'Name': f"{DEFAULT_ARGS['owner']}-intent",
     'ReleaseLabel': 'emr-5.31.0',
     'LogUri': 's3://hg-logs/emr-logs/',
+    'Tags': [
+        {
+            'Key': 'owner',
+            'Value': DEFAULT_ARGS['owner']
+        }, {
+            'Key': 'env',
+            'Value': environ.get('ENV')
+        },
+    ],
     'Instances': {
         'InstanceGroups': [
             {
@@ -73,11 +83,11 @@ JOB_FLOW_OVERRIDES = {
                 'Market': 'SPOT',
                 'InstanceRole': 'CORE',
                 'InstanceType': 'r5.2xlarge',
-                'InstanceCount': 1,
+                'InstanceCount': 3,
                 'EbsConfiguration': {
                     'EbsBlockDeviceConfigs': [
                         {
-                            'VolumeSpecification': { 'SizeInGB': 64, 'VolumeType': 'gp2' },
+                            'VolumeSpecification': { 'SizeInGB': 256, 'VolumeType': 'gp2' },
                             'VolumesPerInstance': 1
                         }
                     ]
