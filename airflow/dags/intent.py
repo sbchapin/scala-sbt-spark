@@ -72,7 +72,7 @@ JOB_FLOW_OVERRIDES = {
                 'Name': 'Core node',
                 'Market': 'SPOT',
                 'InstanceRole': 'CORE',
-                'InstanceType': 'm5.2xlarge',
+                'InstanceType': 'r5.2xlarge',
                 'InstanceCount': 1,
                 'EbsConfiguration': {
                     'EbsBlockDeviceConfigs': [
