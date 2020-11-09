@@ -33,7 +33,7 @@ object Writer {
     private val hudiOpts: Map[String, String] = Map(
       // Static:
       DataSourceWriteOptions.TABLE_TYPE_OPT_KEY -> DataSourceWriteOptions.COW_TABLE_TYPE_OPT_VAL, // Copy On Write
-      DataSourceWriteOptions.OPERATION_OPT_KEY -> DataSourceWriteOptions.INSERT_OPERATION_OPT_VAL, // Insert
+      DataSourceWriteOptions.OPERATION_OPT_KEY -> DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL, // Bulk Insert
       // Dynamic:
       HoodieWriteConfig.TABLE_NAME -> table,
       DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY -> idField,
