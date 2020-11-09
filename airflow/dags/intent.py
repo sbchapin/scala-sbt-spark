@@ -51,7 +51,7 @@ EMR_STEPS = [
 ]
 
 JOB_FLOW_OVERRIDES = {
-    'Name': f"{DEFAULT_ARGS['owner']}-${ENV}-intent",
+    'Name': f"{DEFAULT_ARGS['owner']}-{ENV}-intent",
     'ReleaseLabel': 'emr-5.31.0',
     'LogUri': 's3://hg-logs/emr-logs/',
     'Tags': [
@@ -85,11 +85,11 @@ JOB_FLOW_OVERRIDES = {
                 'Market': 'SPOT',
                 'InstanceRole': 'CORE',
                 'InstanceType': 'r5.2xlarge',
-                'InstanceCount': 3,
+                'InstanceCount': 5,
                 'EbsConfiguration': {
                     'EbsBlockDeviceConfigs': [
                         {
-                            'VolumeSpecification': { 'SizeInGB': 256, 'VolumeType': 'gp2' },
+                            'VolumeSpecification': { 'SizeInGB': 400, 'VolumeType': 'gp2' },
                             'VolumesPerInstance': 1
                         }
                     ]
