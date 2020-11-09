@@ -17,7 +17,7 @@ from airflow.models import Variable
 
 DEFAULT_ARGS = {
     'owner': 'core-ip',
-    'depends_on_past': False,
+    'depends_on_past': True, # to guarantee no two hudi committers overwrite
     'email': ['core-ip@hginsights.com'],
     'email_on_failure': False,
     'email_on_retry': False,
