@@ -3,6 +3,7 @@ package com.hgdata.picocli
 import com.hgdata.spark.io.Reader.ReaderHelpers
 import picocli.CommandLine
 
+/** A simple mixin to bring in --input args for jobs and lazily provide pre-wired various readers. */
 trait InputCommandLineOpts {
 
   @CommandLine.Option(

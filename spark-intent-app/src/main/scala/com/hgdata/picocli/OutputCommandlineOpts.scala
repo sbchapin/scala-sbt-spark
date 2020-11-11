@@ -3,6 +3,7 @@ package com.hgdata.picocli
 import com.hgdata.spark.io.Writer.WriterHelpers
 import picocli.CommandLine
 
+/** A simple mixin to bring in --output args for jobs and lazily provide pre-wired various writers. */
 trait OutputCommandlineOpts {
 
   @CommandLine.Option(
