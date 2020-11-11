@@ -42,6 +42,7 @@ EMR_STEPS = [
                 '--deploy-mode', 'client',
                 '--class', 'com.hgdata.spark.Main',
                 '{{ var.value.intent_jar_path }}',
+                'intent-prep',
                 '--input', f"s3://{DELIVERY_BUCKET}/{DELIVERY_PREFIX}",
                 '--output', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_PREFIX}",
                 '--output-database', 'hg_intent',

@@ -7,28 +7,67 @@ class MainSpec extends FunSpec {
   describe("The entrypoint") {
 
     val main = Main
-    val baseOptions = Array("--input", "a", "--output", "b")
+    val intentPrepSubcommand = "intent-prep"
+    val urlAliasDeltifySubcommand = "url-alias-deltify"
+    val inputArgs = Array("--input", "i")
+    val outputArgs = Array("--output", "o")
+    val outputDatabaseArgs = Array("--output-database", "od")
 
     describe("when parsing args with picocli") {
 
-      it("should be able to parse required --input and --output") {
-        new CommandLine(main).parseArgs(baseOptions:_*)
-        assert(main.inputPath == "a" && main.outputPath == "b")
+      describe(s"with an `$urlAliasDeltifySubcommand` subcommand") {
+
+        val baseOptions = Array(urlAliasDeltifySubcommand) ++ inputArgs ++ outputArgs
+
+        it("should fail if passed just the subcommand") {
+          assertThrows[CommandLine.MissingParameterException] {
+            main.commandLine.parseArgs(urlAliasDeltifySubcommand)
+          }
+        }
+
+
       }
 
-      it("should be able to parse --output-database") {
-        new CommandLine(main).parseArgs(baseOptions ++ Array("--output-database", "d"):_*)
-        assert(main.outputHiveDatabase == "d")
-      }
+      describe(s"with an `$intentPrepSubcommand` subcommand") {
+        val baseArgs = Array(intentPrepSubcommand) ++ inputArgs ++ outputArgs
 
-      it("should be able to parse --help") {
-        val result = new CommandLine(main).parseArgs("--help")
-        assert(result.isUsageHelpRequested)
-      }
+        it("should fail if passed just the subcommand") {
+          assertThrows[CommandLine.MissingParameterException] {
+            main.commandLine.parseArgs(intentPrepSubcommand)
+          }
+        }
 
-      it("should be able to parse --version") {
-        val result = new CommandLine(main).parseArgs("--version")
-        assert(result.isVersionHelpRequested)
+        it("should fail if passed just the subcommand and --input") {
+          assertThrows[CommandLine.MissingParameterException] {
+            main.commandLine.parseArgs(Array(intentPrepSubcommand) ++ inputArgs: _*)
+          }
+        }
+
+        it("should fail if passed just the subcommand and --output") {
+          assertThrows[CommandLine.MissingParameterException] {
+            main.commandLine.parseArgs(Array(intentPrepSubcommand) ++ outputArgs: _*)
+          }
+        }
+
+        it("should be able to parse required --input and --output") {
+          main.commandLine.parseArgs(baseArgs: _*)
+          assert(main.IntentPrepSubcommand.inputPath == "i" && main.IntentPrepSubcommand.outputPath == "o")
+        }
+
+        it("should be able to parse --output-database") {
+          main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
+          assert(main.IntentPrepSubcommand.outputHiveDatabase == "od")
+        }
+
+        it("should be able to parse --help") {
+          val result = main.commandLine.parseArgs("--help")
+          assert(result.isUsageHelpRequested)
+        }
+
+        it("should be able to parse --version") {
+          val result = main.commandLine.parseArgs("--version")
+          assert(result.isVersionHelpRequested)
+        }
       }
     }
   }
