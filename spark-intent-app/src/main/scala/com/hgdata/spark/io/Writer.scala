@@ -12,6 +12,23 @@ trait Writer {
 
 object Writer {
 
+  /** A collection of various factory functions that create writers. */
+  class WriterHelpers(path: String, hiveDatabase: Option[String] = None) {
+
+    /** Parquet, holistic. */
+    def preppedIntentWriter: Writer = new Writer.Parquet(path)
+
+    /** Hudi Hive, delta, keyed off `uuid` and `date_stamp` columns. */
+    def preppedIntentDeltaWriter: Writer = new Writer.HudiHive(
+      path = path,
+      database = hiveDatabase,
+      table = "intent_prepped",
+      idField = "uuid",
+      partitionField = "date_stamp",
+      precombineField = "date_stamp"
+    )
+  }
+
   /** Write generically to parquet path */
   class Parquet(path: String)
     extends Writer

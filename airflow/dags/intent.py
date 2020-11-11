@@ -44,7 +44,7 @@ EMR_STEPS = [
                 '{{ var.value.intent_jar_path }}',
                 '--input', f"s3://{DELIVERY_BUCKET}/{DELIVERY_PREFIX}",
                 '--output', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_PREFIX}",
-                '--database', 'hg_intent',
+                '--output-database', 'hg_intent',
              ],
         },
     }

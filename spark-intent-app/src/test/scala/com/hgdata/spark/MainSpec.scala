@@ -16,9 +16,9 @@ class MainSpec extends FunSpec {
         assert(main.inputPath == "a" && main.outputPath == "b")
       }
 
-      it("should be able to parse --database") {
-        new CommandLine(main).parseArgs(baseOptions ++ Array("--database", "d"):_*)
-        assert(main.hiveDatabase == "d")
+      it("should be able to parse --output-database") {
+        new CommandLine(main).parseArgs(baseOptions ++ Array("--output-database", "d"):_*)
+        assert(main.outputHiveDatabase == "d")
       }
 
       it("should be able to parse --help") {

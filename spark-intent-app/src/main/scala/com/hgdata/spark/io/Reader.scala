@@ -10,6 +10,13 @@ trait Reader {
 
 object Reader {
 
+  /** A collection of various factory functions that create readers. */
+  class ReaderHelpers(inputPath: String) {
+
+    /** CSV, customized for reading raw intent format. */
+    def rawIntentReader(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
+  }
+
   /** Read a highly-specific Intent CSV format from a path */
   class RawIntent(path: String)(implicit spark: SparkSession) extends Reader {
 
