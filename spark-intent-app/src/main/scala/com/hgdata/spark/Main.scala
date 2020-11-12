@@ -2,6 +2,7 @@ package com.hgdata.spark
 
 import com.hgdata.generated.BuildInfo
 import com.hgdata.picocli.{InputCommandLineOpts, OutputCommandlineOpts}
+import com.hgdata.spark.runnables.{IntentPrep, Passthrough}
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
 
@@ -17,8 +18,8 @@ object Main {
   object IntentPrepSubcommand extends SparkRunnable with InputCommandLineOpts with OutputCommandlineOpts {
     override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
       val prep = new IntentPrep(
-        reader = readers.rawIntentReader,
-        writer = writers.preppedIntentDeltaWriter
+        reader = readers.rawIntent,
+        writer = writers.preppedIntentDelta
       )
       prep.run()
     }
@@ -26,7 +27,13 @@ object Main {
 
   @CommandLine.Command(name = "url-alias-deltify")
   object UrlAliasPrepSubcommand extends SparkRunnable with InputCommandLineOpts with OutputCommandlineOpts {
-    override def run(): Unit = ???
+    override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
+      val deltify = new Passthrough(
+        reader = readers.urlAlias,
+        writer = writers.urlAliasDelta
+      )
+      deltify.run()
+    }
   }
 
   private[spark] lazy val commandLine: CommandLine =

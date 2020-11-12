@@ -19,14 +19,27 @@ object Writer {
     def preppedIntentWriter: Writer = new Writer.Parquet(path)
 
     /** Hudi Hive, delta, keyed off `uuid` and `date_stamp` columns. */
-    def preppedIntentDeltaWriter: Writer = new Writer.HudiHive(
+    def preppedIntentDelta: Writer = new Writer.HudiHive(
       path = path,
       database = hiveDatabase,
       table = "intent_prepped",
       idField = "uuid",
       partitionField = "date_stamp",
-      precombineField = "date_stamp"
+      precombineField = "date_stamp",
+      operation = DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL // Bulk Insert
     )
+
+    /** Hudi Hive, delta, keyed off `alternate_url` column. */
+    def urlAliasDelta: Writer = new Writer.HudiHive(
+      path = path,
+      database = hiveDatabase,
+      table = "url_alias",
+      idField = "alternate_url",
+      partitionField = "run_id",
+      precombineField = "run_id",
+      operation = DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL // Upsert
+    )
+
   }
 
   /** Write generically to parquet path */
@@ -43,14 +56,14 @@ object Writer {
   }
 
   /** Write generically to hudi and hive table */
-  class HudiHive(path: String, table: String, idField: String, partitionField: String, precombineField: String, database: Option[String] = None)
+  class HudiHive(path: String, table: String, idField: String, partitionField: String, precombineField: String, operation: String, database: Option[String] = None)
     extends Writer
       with LazyLogging
   {
     private val hudiOpts: Map[String, String] = Map(
       // Static:
       DataSourceWriteOptions.TABLE_TYPE_OPT_KEY -> DataSourceWriteOptions.COW_TABLE_TYPE_OPT_VAL, // Copy On Write
-      DataSourceWriteOptions.OPERATION_OPT_KEY -> DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL, // Bulk Insert
+      DataSourceWriteOptions.OPERATION_OPT_KEY -> operation,
       // Dynamic:
       HoodieWriteConfig.TABLE_NAME -> table,
       DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY -> idField,

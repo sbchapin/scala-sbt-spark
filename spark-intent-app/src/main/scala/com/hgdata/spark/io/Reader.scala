@@ -1,11 +1,14 @@
 package com.hgdata.spark.io
 
-import org.apache.spark.sql.{Column, DataFrame, SparkSession}
+import org.apache.spark.sql.functions.{col, lit}
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
-import org.apache.spark.sql.functions.col
+import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 trait Reader {
   def read: DataFrame
+  def map(x: DataFrame => DataFrame): Reader = new Reader {
+    override def read: DataFrame = x(read)
+  }
 }
 
 object Reader {
@@ -14,7 +17,16 @@ object Reader {
   class ReaderHelpers(inputPath: String) {
 
     /** CSV, customized for reading raw intent format. */
-    def rawIntentReader(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
+    def rawIntent(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
+    /** Parquet, holistic, grabs the run ID from path */
+    def urlAlias(implicit s: SparkSession): Reader = new Reader.Parquet(inputPath)
+      .map { _.withColumn("run_id", lit(Runpath.getDatePartition(inputPath))) }
+  }
+
+
+  /** Read a generic Parquet format from a path */
+  class Parquet(path: String)(implicit spark: SparkSession) extends Reader {
+    override def read: DataFrame = spark.read.parquet(path)
   }
 
   /** Read a highly-specific Intent CSV format from a path */
@@ -55,4 +67,5 @@ object Reader {
         .select(columnMapping:_* )
     }
   }
+
 }
