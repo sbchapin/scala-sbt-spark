@@ -31,7 +31,7 @@ namespaced_variables = {
     },
     # 'intent' configuration:
     'intent': {
-        'jar_path': 's3://hg-code/jars/intent/spark-intent-app/build/COREIP-26-airflow.jar',
+        'jar_path': 's3://hg-code/jars/intent/spark-intent-app/build/COREIP-27-url-aliasing.jar',
     }
 }
 
