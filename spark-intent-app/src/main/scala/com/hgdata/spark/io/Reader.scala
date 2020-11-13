@@ -19,7 +19,7 @@ object Reader {
     /** CSV, customized for reading raw intent format. */
     def rawIntent(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
     /** Parquet, holistic, grabs the run ID from path */
-    def urlAlias(implicit s: SparkSession): Reader = new Reader.Parquet(inputPath)
+    def altUrl(implicit s: SparkSession): Reader = new Reader.Parquet(inputPath)
       .map { _.withColumn("run_id", lit(Runpath.getDatePartition(inputPath))) }
   }
 

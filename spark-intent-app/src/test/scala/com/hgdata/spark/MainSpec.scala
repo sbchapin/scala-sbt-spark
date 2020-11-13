@@ -8,20 +8,20 @@ class MainSpec extends FunSpec {
 
     val main = Main
     val intentPrepSubcommand = "intent-prep"
-    val urlAliasDeltifySubcommand = "url-alias-deltify"
+    val altUrlDeltifySubcommand = "alternate-url-deltify"
     val inputArgs = Array("--input", "i")
     val outputArgs = Array("--output", "o")
     val outputDatabaseArgs = Array("--output-database", "od")
 
     describe("when parsing args with picocli") {
 
-      describe(s"with an `$urlAliasDeltifySubcommand` subcommand") {
+      describe(s"with an `$altUrlDeltifySubcommand` subcommand") {
 
-        val baseOptions = Array(urlAliasDeltifySubcommand) ++ inputArgs ++ outputArgs
+        val baseOptions = Array(altUrlDeltifySubcommand) ++ inputArgs ++ outputArgs
 
         it("should fail if passed just the subcommand") {
           assertThrows[CommandLine.MissingParameterException] {
-            main.commandLine.parseArgs(urlAliasDeltifySubcommand)
+            main.commandLine.parseArgs(altUrlDeltifySubcommand)
           }
         }
 

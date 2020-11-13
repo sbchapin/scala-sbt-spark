@@ -30,10 +30,10 @@ object Writer {
     )
 
     /** Hudi Hive, delta, keyed off `alternate_url` column. */
-    def urlAliasDelta: Writer = new Writer.HudiHive(
+    def alternateUrlDelta: Writer = new Writer.HudiHive(
       path = path,
       database = hiveDatabase,
-      table = "url_alias",
+      table = "alternate_urls",
       idField = "alternate_url",
       partitionField = "run_id",
       precombineField = "run_id",

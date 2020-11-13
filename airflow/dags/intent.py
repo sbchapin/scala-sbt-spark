@@ -37,11 +37,11 @@ TRANSFORMED_BUCKET = 'hg-transformed-docs'
 TRANSFORMED_PREFIX = 'intent/46/hudi/'
 
 MRD_PIPELINE_BUCKET = 'hg-mrd-pipeline'
-MRD_PIPELINE_URL_ALIAS_PREFIX = 'delivery/{{ execution_date.year }}-{{ execution_date.month }}-20/data_ops/alternate_urls/'
+MRD_PIPELINE_ALTERNATE_URL_PREFIX = 'delivery/{{ execution_date.year }}-{{ execution_date.month }}-20/data_ops/alternate_urls/'
 
 EMR_STEPS = [
     {
-        'Name': 'run_url_alias_deltify',
+        'Name': 'run_alternate_url_deltify',
         'ActionOnFailure': 'TERMINATE_CLUSTER',
         'HadoopJarStep': {
             'Jar': 'command-runner.jar',
@@ -50,7 +50,7 @@ EMR_STEPS = [
                 '--deploy-mode', 'client',
                 '--class', 'com.hgdata.spark.Main',
                 '{{ var.value.intent_jar_path }}',
-                'url-alias-deltify',
+                'alternate-url-deltify',
                 '--input', '{{ ti.xcom_pull(task_ids="s3_alternate_url_deliveries") }}',
                 '--output', 's3://hg-core-ip/hudi/alternate_urls',
                 '--output-database', 'hg_intent',
@@ -177,7 +177,7 @@ with DAG(
         python_callable=get_last_prefix,
         op_kwargs={
             'bucket': MRD_PIPELINE_BUCKET,
-            'prefix': MRD_PIPELINE_URL_ALIAS_PREFIX,
+            'prefix': MRD_PIPELINE_ALTERNATE_URL_PREFIX,
         }
     )
 

@@ -25,12 +25,12 @@ object Main {
     }
   }
 
-  @CommandLine.Command(name = "url-alias-deltify")
-  object UrlAliasPrepSubcommand extends SparkRunnable with InputCommandLineOpts with OutputCommandlineOpts {
+  @CommandLine.Command(name = "alternate-url-deltify")
+  object AlternateUrlPrepSubcommand extends SparkRunnable with InputCommandLineOpts with OutputCommandlineOpts {
     override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
       val deltify = new Passthrough(
-        reader = readers.urlAlias,
-        writer = writers.urlAliasDelta
+        reader = readers.altUrl,
+        writer = writers.alternateUrlDelta
       )
       deltify.run()
     }
@@ -39,7 +39,7 @@ object Main {
   private[spark] lazy val commandLine: CommandLine =
     new CommandLine(this)
       .addSubcommand(IntentPrepSubcommand)
-      .addSubcommand(UrlAliasPrepSubcommand)
+      .addSubcommand(AlternateUrlPrepSubcommand)
 
   def main(args: Array[String]): Unit = {
     val exitCode = commandLine.execute(args:_*)
