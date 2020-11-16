@@ -11,10 +11,10 @@ object Pathing {
     [^\/]*                         # match the path segment
     (?<year>\d{4})                 # match year
     (?<separator>[-\/._]?)         # match various y-m-d separators
-    (?<month>0[1-9]|1[012])       # match month
+    (?<month>0[1-9]|1[012])        # match month
     \k<separator>                  # backreference, match the same separator
     (?<day>0[1-9]|[12][0-9]|3[01]) # match day
-    [^\/]*                         # match the remainder of the path segment
+    [\/]*                          # match the remainder of the path segment
   """.r
 
   /**

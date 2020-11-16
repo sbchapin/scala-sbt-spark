@@ -7,7 +7,7 @@ import org.scalatest.FunSpec
 class PathingSpec extends FunSpec {
 
   describe("A Pathing object converting a relative path") {
-    
+
     val currentAbsolutePath = Paths.get(".").toAbsolutePath.toString
 
     it("should resolve paths starting with './'") {
@@ -70,6 +70,10 @@ class PathingSpec extends FunSpec {
       it("should parse slashed date partitions") {
         assert(Pathing.getDatePartition(baseS3Path + "/2020/01/01/").contains("2020/01/01"))
       }
+    }
+
+    it("should parse paths that do not end with '/'") {
+      assert(Pathing.getDatePartition(baseS3Path + "/2020-01-01").contains("2020.01.01"))
     }
 
     it("should parse suffix along with date partitions") {
