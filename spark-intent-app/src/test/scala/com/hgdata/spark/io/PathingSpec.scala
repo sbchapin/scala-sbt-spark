@@ -6,6 +6,30 @@ import org.scalatest.FunSpec
 
 class PathingSpec extends FunSpec {
 
+  describe("A Pathing object converting a relative path") {
+    
+    val currentAbsolutePath = Paths.get(".").toAbsolutePath.toString
+
+    it("should resolve paths starting with './'") {
+      assert(Pathing.relativeToAbsolute("./example-relative") == s"$currentAbsolutePath/example-relative")
+    }
+
+    it("should not resolve absolute paths") {
+      assert(
+        Pathing.relativeToAbsolute("/example-absolute") == "/example-absolute" &&
+        Pathing.relativeToAbsolute("/example-absolute/") == "/example-absolute/" &&
+        Pathing.relativeToAbsolute("file:///example-absolute/") == "file:///example-absolute/"
+      )
+    }
+
+    it("should not resolve s3 paths") {
+      assert(
+        Pathing.relativeToAbsolute("s3://example-s3") == "s3://example-s3" &&
+        Pathing.relativeToAbsolute("s3://example-s3/") == "s3://example-s3/"
+      )
+    }
+  }
+
   describe("A Pathing object parsing a date partition") {
 
     val baseS3Path = "s3://example-bucket/example-prefix"
