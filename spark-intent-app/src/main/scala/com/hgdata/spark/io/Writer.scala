@@ -35,7 +35,7 @@ object Writer {
       database = hiveDatabase,
       table = "alternate_urls",
       idField = "alternate_url",
-      partitionField = "run_id",
+      partitionField = "", // No partitioning
       precombineField = "run_id",
       operation = DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL // Upsert
     )
@@ -93,7 +93,7 @@ object Writer {
         .format("org.apache.hudi")
         .options(opts)
         .mode(SaveMode.Append)
-        .save(path)
+        .save(Pathing.relativeToAbsolute(path))
     }
   }
 }

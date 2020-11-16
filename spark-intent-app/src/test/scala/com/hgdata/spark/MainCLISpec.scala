@@ -3,8 +3,8 @@ package com.hgdata.spark
 import org.scalatest.FunSpec
 import picocli.CommandLine
 
-class MainSpec extends FunSpec {
-  describe("The entrypoint") {
+class MainCLISpec extends FunSpec {
+  describe("The entrypoint's CLI") {
 
     val main = Main
     val intentPrepSubcommand = "intent-prep"

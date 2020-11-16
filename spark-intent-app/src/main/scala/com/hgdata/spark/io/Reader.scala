@@ -1,13 +1,16 @@
 package com.hgdata.spark.io
 
-import org.apache.spark.sql.functions.{col, lit}
+import org.apache.spark.sql.functions.{col, typedLit}
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, SparkSession}
 
 trait Reader {
   def read: DataFrame
-  def map(x: DataFrame => DataFrame): Reader = new Reader {
-    override def read: DataFrame = x(read)
+  def map(x: DataFrame => DataFrame): Reader = {
+    val outer = this
+    new Reader {
+      override def read: DataFrame = x(outer.read)
+    }
   }
 }
 
@@ -20,7 +23,7 @@ object Reader {
     def rawIntent(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
     /** Parquet, holistic, grabs the run ID from path */
     def altUrl(implicit s: SparkSession): Reader = new Reader.Parquet(inputPath)
-      .map { _.withColumn("run_id", lit(Runpath.getDatePartition(inputPath))) }
+      .map { _.withColumn("run_id", typedLit(Pathing.getDatePartition(inputPath).orNull)) }
   }
 
 
