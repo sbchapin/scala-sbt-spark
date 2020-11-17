@@ -14,7 +14,7 @@ object Pathing {
     (?<month>0[1-9]|1[012])        # match month
     \k<separator>                  # backreference, match the same separator
     (?<day>0[1-9]|[12][0-9]|3[01]) # match day
-    [\/]*                          # match the remainder of the path segment
+    [^\/]*                         # match the remainder of the path segment
   """.r
 
   /**
