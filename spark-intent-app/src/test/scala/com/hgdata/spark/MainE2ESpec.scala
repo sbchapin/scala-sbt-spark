@@ -1,5 +1,6 @@
 package com.hgdata.spark
 
+import com.hgdata.spark.io.Reader
 import com.hgdata.spark.testutil.SparkHelpers
 import org.apache.spark.sql.SaveMode
 import org.scalatest.FunSpec
@@ -17,7 +18,8 @@ class MainE2ESpec extends FunSpec with SparkHelpers {
       import spark.implicits._
       val alts = Seq(
         ("aye.com", "a.com", "distinct_child_entity"),
-        ("a.com",   "a.com", "alias")
+        ("a.com",   "a.com", "alias"),
+        ("ayy.com", "a.com", "alias")
       ).toDF("alternate_url", "url", "alternate_url_type")
       alts.write.mode(SaveMode.Overwrite).parquet(inputPath)
     }
@@ -32,6 +34,9 @@ class MainE2ESpec extends FunSpec with SparkHelpers {
             "-i", inputPath,
             "-o", outputPath
           ))
+          withTestSpark { implicit spark =>
+            new Reader.HudiSnapshot(outputPath, 1).read.show()
+          }
         }
       }
     }
