@@ -1,13 +1,11 @@
 package com.hgdata.spark.io
 
-import com.hgdata.spark
-import com.hgdata.spark.io
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hudi.DataSourceWriteOptions
 import org.apache.hudi.config.HoodieWriteConfig
 import org.apache.hudi.hive.MultiPartKeysValueExtractor
-import org.apache.spark.sql.{DataFrame, SaveMode, SparkSession}
 import org.apache.spark.sql.functions._
+import org.apache.spark.sql.{AnalysisException, DataFrame, SaveMode, SparkSession}
 
 trait Writer {
   def write(df: DataFrame): Unit
@@ -114,7 +112,7 @@ object Writer {
                          beginInstant: Option[String] = None,
                          endInstant: Option[String] = None,
                          database: Option[String] = None)
-                        (implicit spark: SparkSession) extends Writer {
+                        (implicit spark: SparkSession) extends Writer with LazyLogging {
 
     /** Underlying reader for the dataset we are attempting to write to - always reads the holistic state, dictated by instant. */
     val reader = new Reader.HudiSnapshot(
@@ -124,21 +122,29 @@ object Writer {
       endInstant = endInstant
     )
 
-    /** Underlying writer for the dataset we are writing to - will persist any and all upserts issued. */
-    val writer = new Writer.HudiHive(
+    /** Underlying writer for the dataset we are writing to - will persist any information issued. */
+    def writer(operation: String) = new Writer.HudiHive(
       path = path,
       database = database,
       table = table,
       idField = idField,
       partitionField = partitionField,
       precombineField = precombineField,
-      operation = DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL
+      operation = operation
     )
 
     override def write(df: DataFrame): Unit = {
       // The holistic desired state and holistic current state of what exists
       val desired = df
-      val current = reader.read
+      val current = try {
+        reader.read
+      } catch {
+        case e: AnalysisException =>
+          logger.warn(s"Failed to read from $reader - assuming this is the first time writing to that dataset; will initialize with bulk inserts.  Reader failure follows, though you can likely ignore it:", e)
+          // Bulk insert everything
+          writer(DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL).write(desired)
+          return // don't continue to deltas
+      }
 
       // The (calculated) delta
       val upserts: DataFrame = desired.join(current, current(idField) === desired(idField), "full")
@@ -159,8 +165,8 @@ object Writer {
           when(desired(idField).isNull, true).otherwise(lit(null)).as("_hoodie_is_deleted"):_*
         )
 
-      // Write (just) the delta
-      writer.write(upserts)
+      // Upsert (just) the delta
+      writer(DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL).write(upserts)
     }
   }
 }
