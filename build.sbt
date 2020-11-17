@@ -1,5 +1,5 @@
 ThisBuild / name := "scala-sbt-spark"
-ThisBuild / scalaVersion := "2.12.12"
+ThisBuild / scalaVersion := "2.11.11"
 ThisBuild / organization := "com.hgdata"
 ThisBuild / scalacOptions ++= Seq("-unchecked", "-deprecation", "-feature", "-Xfatal-warnings")
 ThisBuild / javacOptions ++= Seq("-source", "1.8", "-target", "1.8", "-Xlint")
@@ -12,6 +12,7 @@ lazy val root = (project in file("."))
   .aggregate(
     common,
     sparkApp,
+    sparkIntentApp
   )
 
 // Library: Common behavior among projects
@@ -24,7 +25,7 @@ lazy val common = (project in file("common"))
     baseSettings,
     // Dependencies:
     libraryDependencies ++= baseDeps,
-    libraryDependencies ++= sparkDeps,
+    libraryDependencies ++= sparkDeps
   )
 
 // Application: Standard Spark
@@ -47,9 +48,31 @@ lazy val sparkApp = (project in file("spark-app"))
     // Dependencies:
     libraryDependencies ++= baseDeps,
     libraryDependencies ++= sparkDeps,
-    libraryDependencies ++= Seq(
-      "info.picocli" % "picocli" % "4.5.0"
-    ),
+    libraryDependencies ++= appDeps
+  )
+
+// Application: Standard Spark
+lazy val sparkIntentApp = (project in file("spark-intent-app"))
+  .dependsOn(common)
+  .enablePlugins(BuildInfoPlugin)
+  .settings(
+    name := "spark-intent-app",
+    description :=
+      """Spark app to prep intent data, for usage with spark-submit.
+        |
+        |Example usage:
+        |  spark-submit spark-intent-app.jar --help
+        |""".stripMargin,
+    version := "0.0.0",
+    // Settings:
+    baseSettings,
+    assemblySettings,
+    buildInfoSettings,
+    // Dependencies:
+    libraryDependencies ++= baseDeps,
+    libraryDependencies ++= sparkDeps,
+    libraryDependencies ++= hudiDeps,
+    libraryDependencies ++= appDeps
   )
 
 // DEPENDENCIES:
@@ -58,7 +81,7 @@ lazy val sparkApp = (project in file("spark-app"))
 lazy val baseDeps = Seq(
   // Logging interface:
   "com.typesafe.scala-logging" %% "scala-logging" % "3.9.2",
-  "org.slf4j" % "slf4j-api" % "1.7.25",                              // slf4j as logging interface
+  "org.slf4j" % "slf4j-api" % "1.7.26",                              // slf4j as logging interface
 
   // Testing:
   "org.scalatest" %% "scalatest" % "3.0.8" % Test,
@@ -71,9 +94,25 @@ lazy val baseDeps = Seq(
 /** Dependencies for Spark and friends */
 lazy val sparkDeps = Seq(
   // Spark:
-  "org.apache.spark" %% "spark-core" % "2.4.5" % Provided,
-  "org.apache.spark" %% "spark-sql" % "2.4.5" % Provided,
+  "org.apache.spark" %% "spark-core" % "2.4.4" % Provided,
+  "org.apache.spark" %% "spark-sql" % "2.4.4" % Provided,
 )
+/** Dependencies for Hudi and friends */
+lazy val hudiDeps = Seq(
+  // Hudi
+  "org.apache.hudi" %% "hudi-spark-bundle" % "0.5.3",
+  "org.apache.spark" %% "spark-avro" % "2.4.4", // for hudi
+  "org.apache.httpcomponents" % "httpclient" % "4.3.3", // for hudi
+)
+/** Dependencies for Applications (not libraries) */
+lazy val appDeps = Seq(
+  // Arg parsing:
+  "info.picocli" % "picocli" % "4.5.0"
+)
+
+// TASKS:
+
+lazy val sparkSubmit = inputKey[Unit]("Execute spark-submit with the assembled application.  Pass arguments as you would to spark-submit.")
 
 // SETTINGS:
 
@@ -109,9 +148,25 @@ lazy val assemblySettings = Seq(
   assemblyJarName in assembly := name.value + ".jar",
   assemblyMergeStrategy in assembly := {
     // discard:
+    case "overview.html" => MergeStrategy.discard
     case x if x.endsWith("/module-info.class") => MergeStrategy.discard
+    case x if x.endsWith("/spark/unused/UnusedStubClass.class") => MergeStrategy.discard
+    // take last...
+    case PathList("org", "apache", "http", _*) => MergeStrategy.last
     // ...otherwise default to old strategy:
     case x => (assemblyMergeStrategy in assembly).value(x)
+  },
+
+  // Custom tasks to run spark-submit on assembled jars.
+  // ex: sbt sparkSubmit --help
+  sparkSubmit := {
+    import scala.sys.process._
+    import complete.DefaultParsers._
+    // Gather all args after the sparksSubmit task
+    val args = spaceDelimited("<arg>").parsed
+    // Run assembly
+    val assemblyOutput = (Compile / assembly).value
+    s"spark-submit ${assemblyOutput.getPath} ${args.mkString(" ")}" !
   }
 )
 
@@ -130,7 +185,7 @@ lazy val buildInfoSettings = Seq(
   ),
   buildInfoOptions ++= Seq(
     BuildInfoOption.BuildTime,
-    BuildInfoOption.ConstantValue,
+    BuildInfoOption.ConstantValue
   ),
   buildInfoPackage := "com.hgdata.generated",
 )

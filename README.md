@@ -3,7 +3,8 @@
 A multi-project build for Spark-based applications.
 
 - `./commons` - Common behavior among scala-sbt-spark projects
-- `./spark-app` - Standard spark application, for usage with spark-submit
+- `./spark-app` - Standard spark application, for usage with spark-submit (primarily provided as an example of how to creak spark apps)
+- `./spark-intent-app` - Spark app to prep intent data
 - `./{your}-app` - Add an application _(It's easy, just an sbt entry away!)_
 
 # Includes... #
@@ -55,7 +56,9 @@ sbt clean
 
 If you want to run **while the repo is present...**
 ```sh
-sbt sparkApp/run
+# Note that this requires `spark-shell` be installed.
+# It is suggested to run `brew install spark`
+sbt sparkApp/sparkSubmit --help
 ```
 
 ---
@@ -68,7 +71,9 @@ If you want to run **in isolation...**
 A quick sanity check can be done via the following:
 ```sh
 sbt assembly
-spark-submit spark-app/target/scala*/spark-app.jar
+spark-submit spark-app/target/scala*/spark-app.jar --help
+# ...or, simply...
+sbt sparkApp/sparkSubmit --help
 ```
 
 
