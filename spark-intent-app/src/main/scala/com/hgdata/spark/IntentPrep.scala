@@ -1,17 +1,29 @@
 package com.hgdata.spark
 
 import com.hgdata.spark.io.{Reader, Writer}
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{Column, SparkSession}
 import org.apache.spark.sql.functions._
 
 class IntentPrep(reader: Reader, writer: Writer)(implicit spark: SparkSession) {
 
+  private def generateUUID(cols: Column*): Column = {
+    val hashed8Cols =
+      cols
+        .map(md5)
+        .map(substring(_, 0, 8))
+    concat_ws("-", hashed8Cols:_*)
+  }
+
   /** Basic pass-through for now (without any cleaning or transformation) */
   def run(): Unit = {
     import spark.implicits._
-    val intent = reader.read
+    // Columns used to determine uniqueness of record (order matters)
+    val uuidCols = Seq($"date_stamp", $"company_name", $"domain", $"category", $"topic", $"metro_area", $"domain_origin")
+    // Filtered null records with uniqueness
+    val preppedIntent = reader.read
       .filter($"date_stamp".isNotNull)
-      .withColumn("uuid", hash($"company_name", $"domain", $"category", $"topic", $"metro_area", $"domain_origin", $"date_stamp"))
-    writer.write(intent)
+      .withColumn("uuid", generateUUID(uuidCols:_*))
+    // Persist
+    writer.write(preppedIntent)
   }
 }
