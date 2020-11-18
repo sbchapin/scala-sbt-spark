@@ -46,7 +46,11 @@ object Writer {
     )
   }
 
-  /** Write generically to parquet path */
+  /**
+    * Write generically to parquet path.
+    *
+    * @param path Where (local, dfs) to write the whole dataframe.
+    */
   class Parquet(path: String) extends Writer with LazyLogging {
 
     logger.debug(s"Generic parquet writer ${this.getClass.getSimpleName} configured to output to ${path}")
@@ -57,7 +61,17 @@ object Writer {
     }
   }
 
-  /** Write generically to hudi and hive table */
+  /**
+    * Write generically to hudi and hive table.
+    *
+    * @param path Where (local, dfs) to write deltas to
+    * @param table Name of the Hudi/Hive table to persist
+    * @param idField Column name of unique primary key of the dataset
+    * @param partitionField Column name used to partition data
+    * @param precombineField Column used to precombine duplicates before insert
+    * @param operation Which [[org.apache.hudi.DataSourceWriteOptions]] (bulk_insert, insert, or upsert) to use for write operation.
+    * @param database What Hive database to write to, defaults to no database (and no hive support)
+    */
   class HudiHive(path: String,
                  table: String,
                  idField: String,
@@ -103,6 +117,23 @@ object Writer {
     }
   }
 
+  /**
+    * Write the difference of a dataset generically to hudi and hive table.
+    *
+    * Expects the "whole data" for every invocation, __not the delta__. Will calculate the difference and upsert it.
+    *
+    * Differences are keyed by `idField` and updates are detected from a difference in equality of any `changeFields`.
+    *
+    * @param path Where (local, dfs) to write deltas to and to read snapshot from
+    * @param table Name of the Hudi/Hive table to persist
+    * @param idField Column name of unique primary key of the dataset
+    * @param changeFields Any difference in row-level equality for any provided column names will propagate an update
+    * @param partitionField Column name used to partition data
+    * @param precombineField Column used to precombine duplicates before insert
+    * @param beginInstant When to start reading the current-state snapshot for diffing, defaults to now, yyyymmddhhmmss
+    * @param endInstant When to stop reading the current-state snapshot for diffing, defaults to now, yyyymmddhhmmss
+    * @param database What Hive database to write to, defaults to no database (and no hive support)
+    */
   class HudiHiveHolistic(path: String,
                          table: String,
                          idField: String,
@@ -147,7 +178,8 @@ object Writer {
       }
 
       // The (calculated) delta
-      val upserts: DataFrame = desired.join(current, current(idField) === desired(idField), "full")
+      val upserts: DataFrame = desired
+        .join(current, current(idField) === desired(idField), "full")
         .where(
           // Detect net new (inserts):
           current(idField).isNull ||
@@ -159,9 +191,9 @@ object Writer {
             .reduce { _ || _ } // any field
         )
         .select(
-          // Coalesce all columns to allow deleting off partition by id with precombination:
+          // Coalesce all columns (to allow deleting off partition by id with precombination):
           desired.columns.map { c => coalesce(desired(c), current(c)).as(c) } :+
-          // Add deletion marker that Hudi upserter uses to delete (must be nullable):
+          // Add deletion marker (Hudi upserter uses this to delete, it must be nullable):
           when(desired(idField).isNull, true).otherwise(lit(null)).as("_hoodie_is_deleted"):_*
         )
 
