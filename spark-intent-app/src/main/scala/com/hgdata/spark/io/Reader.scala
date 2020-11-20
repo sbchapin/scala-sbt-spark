@@ -1,5 +1,11 @@
 package com.hgdata.spark.io
 
+import java.time.{Instant, ZoneId}
+import java.time.format.DateTimeFormatter
+
+import com.hgdata.picocli.InstantString
+import com.hgdata.spark
+import com.hgdata.spark.io
 import org.apache.hudi.DataSourceReadOptions
 import org.apache.hudi.client.HoodieReadClient
 import org.apache.spark.sql.functions.{col, typedLit}
@@ -16,10 +22,40 @@ trait Reader {
   }
 }
 
+/** A more specific behavior of reader to support typing behaviors more strictly to read JUST the difference */
+trait DeltaReader extends Reader
+
+/** A more specific behavior of reader to support typing behaviors more strictly to read the entire state */
+trait HolisticReader extends Reader
+
 object Reader {
 
   /** A collection of various factory functions that create readers. */
   class ReaderHelpers(inputPath: String) {
+
+    /** Hudi, holistic snapshot, (all) latest alternate URLs. */
+    def allAlternateUrls(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
+      path = inputPath,
+      numPartitions = Writer.WriterHelpers.alternateUrlsPartitionCount
+    )
+
+    /** Hudi, delta incremental snapshot, (delta) latest alternate URLs. */
+    def newAlternateUrls(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
+      path = inputPath,
+      beginInstant = InstantString.format(since)
+    )
+
+    /** Hudi, holistic snapshot, (all) latest prepped intent. */
+    def allPreppedIntent(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
+      path = inputPath,
+      numPartitions = Writer.WriterHelpers.preppedIntentPartitionCount
+    )
+
+    /** Hudi, delta incremental, (delta) latest prepped intent. */
+    def newPreppedIntent(since: Instant)(implicit s: SparkSession): DeltaReader = new Reader.HudiIncremental(
+      path = inputPath,
+      beginInstant = InstantString.format(since)
+    )
 
     /** CSV, customized for reading raw intent format. */
     def rawIntent(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
@@ -51,7 +87,7 @@ object Reader {
                         beginInstant: String,
                         endInstant: Option[String] = None,
                         pathGlobKey: Option[String] = None)
-                       (implicit spark: SparkSession) extends Reader {
+                       (implicit spark: SparkSession) extends DeltaReader {
     override def read: DataFrame = {
       val options: Map[String, Option[String]] = Map(
         DataSourceReadOptions.QUERY_TYPE_OPT_KEY -> Some(DataSourceReadOptions.QUERY_TYPE_INCREMENTAL_OPT_VAL),
@@ -82,7 +118,7 @@ object Reader {
                      numPartitions: Int,
                      beginInstant: Option[String] = None,
                      endInstant: Option[String] = None)
-                    (implicit spark: SparkSession) extends Reader {
+                    (implicit spark: SparkSession) extends HolisticReader {
     override def read: DataFrame = {
       val options: Map[String, Option[String]] = Map(
         DataSourceReadOptions.QUERY_TYPE_OPT_KEY -> Some(DataSourceReadOptions.QUERY_TYPE_SNAPSHOT_OPT_VAL),

@@ -13,6 +13,16 @@ trait Writer {
 
 object Writer {
 
+  object WriterHelpers {
+    def countPartitions(partition: String): Int = partition.count(_ == '/') + 1
+
+    val preppedIntentPartition: String = "date_stamp"
+    val preppedIntentPartitionCount: Int = countPartitions(preppedIntentPartition)
+
+    val alternateUrlsPartition: String = "" // Single "default" partition
+    val alternateUrlsPartitionCount: Int = countPartitions(alternateUrlsPartition)
+  }
+
   /** A collection of various factory functions that create writers. */
   class WriterHelpers(path: String, hiveDatabase: Option[String] = None) {
 
@@ -25,7 +35,7 @@ object Writer {
       database = hiveDatabase,
       table = "intent_prepped",
       idField = "uuid",
-      partitionField = "date_stamp",
+      partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
       operation = DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL // Bulk Insert
     )
@@ -41,9 +51,21 @@ object Writer {
       table = "alternate_urls",
       idField = "alternate_url",
       changeFields = Seq("url", "alternate_url_type"),
-      partitionField = "", // Single "default" partition
+      partitionField = WriterHelpers.alternateUrlsPartition,
       precombineField = "run_id"
     )
+
+    /** Hudi Hive, delta, keyed off `uuid` and `date_stamp` columns. */
+    def intentDelta(operation: String): Writer = new Writer.HudiHive(
+      path = path,
+      database = hiveDatabase,
+      table = "intent",
+      idField = "uuid",
+      partitionField = WriterHelpers.preppedIntentPartition,
+      precombineField = "date_stamp",
+      operation = operation
+    )
+
   }
 
   /**
