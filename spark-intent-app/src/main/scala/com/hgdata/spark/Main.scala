@@ -91,7 +91,7 @@ object Main {
       val update = new IntentUpdate(
         preppedIntentReader = intentReaders.newPreppedIntent(preppedIntentInputSince),
         alternateUrlReader = urlReaders.allAlternateUrls,
-        writer = writers.intentDelta(DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL)
+        writer = writers.newIntentDelta
       )
       update.run()
     }

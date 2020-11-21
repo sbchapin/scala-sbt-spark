@@ -56,14 +56,14 @@ object Writer {
     )
 
     /** Hudi Hive, delta, keyed off `uuid` and `date_stamp` columns. */
-    def intentDelta(operation: String): Writer = new Writer.HudiHive(
+    def newIntentDelta: Writer = new Writer.HudiHive(
       path = path,
       database = hiveDatabase,
       table = "intent",
       idField = "uuid",
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
-      operation = operation
+      operation = DataSourceWriteOptions.INSERT_OPERATION_OPT_VAL
     )
 
   }
