@@ -31,13 +31,17 @@ DEFAULT_ARGS = {
 ENV = getenv('ENV', default='staging')
 
 DELIVERY_BUCKET = 'hg-raw-docs'
-DELIVERY_PREFIX = 'intent/46/ingress/{{ ds }}/'
+DELIVERY_INTENT_RAW_PREFIX = 'intent/46/ingress/{{ ds }}/'
 
 TRANSFORMED_BUCKET = 'hg-transformed-docs'
-TRANSFORMED_PREFIX = 'intent/46/hudi/'
+TRANSFORMED_INTENT_PREPPED_PREFIX = 'intent/46/hudi/'
 
 MRD_PIPELINE_BUCKET = 'hg-mrd-pipeline'
 MRD_PIPELINE_ALTERNATE_URL_PREFIX = 'delivery/{{ execution_date.year }}-{{ execution_date.month }}-20/data_ops/alternate_urls/'
+
+CORE_IP_BUCKET = 'hg-core-ip'
+CORE_IP_ALTERNATE_URL_PREFIX = 'hudi/alternate_urls'
+CORE_IP_INTENT_PREFIX = 'hudi/intent'
 
 EMR_STEPS = [
     {
@@ -52,13 +56,13 @@ EMR_STEPS = [
                 '{{ var.value.intent_jar_path }}',
                 'alternate-url-deltify',
                 '--input', '{{ ti.xcom_pull(task_ids="s3_alternate_url_deliveries") }}',
-                '--output', 's3://hg-core-ip/hudi/alternate_urls',
+                '--output', f's3://{CORE_IP_BUCKET}/{CORE_IP_ALTERNATE_URL_PREFIX}',
                 '--output-database', 'hg_intent',
              ],
         },
     },
     {
-        'Name': 'run_intent',
+        'Name': 'run_intent_prep',
         'ActionOnFailure': 'TERMINATE_CLUSTER',
         'HadoopJarStep': {
             'Jar': 'command-runner.jar',
@@ -68,12 +72,31 @@ EMR_STEPS = [
                 '--class', 'com.hgdata.spark.Main',
                 '{{ var.value.intent_jar_path }}',
                 'intent-prep',
-                '--input', f"s3://{DELIVERY_BUCKET}/{DELIVERY_PREFIX}",
-                '--output', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_PREFIX}",
+                '--input', f"s3://{DELIVERY_BUCKET}/{DELIVERY_INTENT_RAW_PREFIX}",
+                '--output', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_INTENT_PREPPED_PREFIX}",
                 '--output-database', 'hg_intent',
              ],
         },
-    }
+    },
+    {
+        'Name': 'run_intent_update',
+        'ActionOnFailure': 'TERMINATE_CLUSTER',
+        'HadoopJarStep': {
+            'Jar': 'command-runner.jar',
+            'Args': [
+                'spark-submit',
+                '--deploy-mode', 'client',
+                '--class', 'com.hgdata.spark.Main',
+                '{{ var.value.intent_jar_path }}',
+                'intent-update',
+                '--input-alternate-urls-path', f's3://{CORE_IP_BUCKET}/{CORE_IP_ALTERNATE_URL_PREFIX}',
+                '--input-prepped-intent-path', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_INTENT_PREPPED_PREFIX}",
+                '--input-prepped-intent-since', "{{ ds }}",
+                '--output', f's3://{CORE_IP_BUCKET}/{CORE_IP_INTENT_PREFIX}',
+                '--output-database', 'hg_intent',
+             ],
+        },
+    },
 ]
 
 JOB_FLOW_OVERRIDES = {
@@ -186,7 +209,7 @@ with DAG(
         bucket_name = DELIVERY_BUCKET,
         timeout = timedelta(days=1).total_seconds(), # if it isn't delivered after a day, give up
         poke_interval = timedelta(hours=1).total_seconds(), # check hourly
-        prefix = DELIVERY_PREFIX,
+        prefix = DELIVERY_INTENT_RAW_PREFIX,
         aws_conn_id = "aws_default"
     )
 
