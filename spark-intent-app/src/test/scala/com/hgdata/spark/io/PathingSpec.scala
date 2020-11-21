@@ -73,7 +73,7 @@ class PathingSpec extends FunSpec {
     }
 
     it("should parse paths that do not end with '/'") {
-      assert(Pathing.getDatePartition(baseS3Path + "/2020-01-01").contains("2020.01.01"))
+      assert(Pathing.getDatePartition(baseS3Path + "/2020-01-01").contains("2020-01-01"))
     }
 
     it("should parse suffix along with date partitions") {
