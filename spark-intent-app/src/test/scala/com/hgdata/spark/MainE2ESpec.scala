@@ -21,8 +21,8 @@ class MainE2ESpec extends FunSpec with SparkHelpers {
       val outputPath = s"./tmp/out/$command"
     }
 
-    object NI {
-      val command = "new-intent"
+    object IN {
+      val command = "intent-update"
       val inputAlternateUrlsPath: String = AUD.outputPath
       val inputIntentPrepPath: String = IP.outputPath
       val outputPath = s"./tmp/out/$command"
@@ -77,18 +77,18 @@ class MainE2ESpec extends FunSpec with SparkHelpers {
       }
     }
 
-    describe(s"running the ${NI.command} command") {
+    describe(s"running the ${IN.command} command") {
       it ("should not explode catastrophically") {
         withTestSparkSysProps {
           Main.main(Array(
-            NI.command,
-            "--input-alternate-urls-path", NI.inputAlternateUrlsPath,
-            "--input-prepped-intent-path", NI.inputIntentPrepPath,
+            IN.command,
+            "--input-alternate-urls-path", IN.inputAlternateUrlsPath,
+            "--input-prepped-intent-path", IN.inputIntentPrepPath,
             "--input-prepped-intent-since", "19991231235959", // Y2K
-            "-o", NI.outputPath
+            "-o", IN.outputPath
           ))
           withTestSpark { implicit spark =>
-            new Reader.HudiSnapshot(NI.outputPath, 1).read.show()
+            new Reader.HudiSnapshot(IN.outputPath, 1).read.show()
           }
         }
       }

@@ -54,14 +54,14 @@ object Main {
 
 
   @CommandLine.Command(
-    name = "new-intent",
+    name = "intent-update",
     description = Array(
       "Ingest any net new prepped intent data, enriching it with the latest Alternate URLs.",
       "Typically run after ingesting new intent data into 'Intent Prepped'.",
       "Will persist updates to intent rows if run on a before-processed dataset, otherwise will add new records."
     )
   )
-  object NewIntentSubcommand extends SparkRunnable with OutputCommandlineOpts {
+  object IntentUpdateSubcommand extends SparkRunnable with OutputCommandlineOpts {
     @CommandLine.Option(
       names = Array("--input-alternate-urls-path"),
       required = true,
@@ -91,7 +91,7 @@ object Main {
       val update = new IntentUpdate(
         preppedIntentReader = intentReaders.newPreppedIntent(preppedIntentInputSince),
         alternateUrlReader = urlReaders.allAlternateUrls,
-        writer = writers.newIntentDelta
+        writer = writers.intentInsertDelta
       )
       update.run()
     }
@@ -101,7 +101,7 @@ object Main {
     new CommandLine(this)
       .addSubcommand(IntentPrepSubcommand)
       .addSubcommand(AlternateUrlPrepSubcommand)
-      .addSubcommand(NewIntentSubcommand)
+      .addSubcommand(IntentUpdateSubcommand)
 
   def main(args: Array[String]): Unit = {
     val exitCode = commandLine.execute(args:_*)

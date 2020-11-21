@@ -12,7 +12,7 @@ class MainCLISpec extends FunSpec {
     val main = Main
     val intentPrepSubcommand = "intent-prep"
     val altUrlDeltifySubcommand = "alternate-url-deltify"
-    val newIntentSubcommand = "new-intent"
+    val intentUpdateSubcommand = "intent-update"
     val inputArgs = Array("--input", "i")
     val outputArgs = Array("--output", "o")
     val outputDatabaseArgs = Array("--output-database", "od")
@@ -94,34 +94,33 @@ class MainCLISpec extends FunSpec {
         }
       }
 
-      describe(s"with an `$newIntentSubcommand` subcommand") {
+      describe(s"with an `$intentUpdateSubcommand` subcommand") {
 
         val inputAUArgs = Array("--input-alternate-urls-path", "au")
         val inputIPArgs = Array("--input-prepped-intent-path", "pi", "--input-prepped-intent-since", "19991231235959") // 1 second before Y2k
-        val baseArgs = Array(newIntentSubcommand) ++ inputAUArgs ++ inputIPArgs ++ outputArgs
+        val baseArgs = Array(intentUpdateSubcommand) ++ inputAUArgs ++ inputIPArgs ++ outputArgs
 
         it("should fail if passed just the subcommand") {
           assertThrows[CommandLine.MissingParameterException] {
-            main.commandLine.parseArgs(newIntentSubcommand)
+            main.commandLine.parseArgs(intentUpdateSubcommand)
           }
         }
 
         it("should fail if passed just the subcommand and alternate urls input arg") {
           assertThrows[CommandLine.MissingParameterException] {
-            main.commandLine.parseArgs(Array(newIntentSubcommand) ++ inputAUArgs: _*)
+            main.commandLine.parseArgs(Array(intentUpdateSubcommand) ++ inputAUArgs: _*)
           }
         }
 
         it("should fail if passed just the subcommand and intent prepped args") {
           assertThrows[CommandLine.MissingParameterException] {
-            main.commandLine.parseArgs(Array(newIntentSubcommand) ++ inputIPArgs: _*)
+            main.commandLine.parseArgs(Array(intentUpdateSubcommand) ++ inputIPArgs: _*)
           }
         }
 
-
         it("should fail if passed just the subcommand and output args") {
           assertThrows[CommandLine.MissingParameterException] {
-            main.commandLine.parseArgs(Array(newIntentSubcommand) ++ outputArgs: _*)
+            main.commandLine.parseArgs(Array(intentUpdateSubcommand) ++ outputArgs: _*)
           }
         }
 
@@ -134,16 +133,16 @@ class MainCLISpec extends FunSpec {
 
           main.commandLine.parseArgs(baseArgs: _*)
           assert(
-            main.NewIntentSubcommand.alternateUrlInputPath == "au" &&
-            main.NewIntentSubcommand.preppedIntentInputPath == "pi" &&
-            main.NewIntentSubcommand.outputPath == "o" &&
-            main.NewIntentSubcommand.preppedIntentInputSince == y2k.toInstant
+            main.IntentUpdateSubcommand.alternateUrlInputPath == "au" &&
+            main.IntentUpdateSubcommand.preppedIntentInputPath == "pi" &&
+            main.IntentUpdateSubcommand.outputPath == "o" &&
+            main.IntentUpdateSubcommand.preppedIntentInputSince == y2k.toInstant
           )
         }
 
         it("should be able to parse --output-database") {
           main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
-          assert(main.NewIntentSubcommand.outputHiveDatabase == "od")
+          assert(main.IntentUpdateSubcommand.outputHiveDatabase == "od")
         }
       }
 

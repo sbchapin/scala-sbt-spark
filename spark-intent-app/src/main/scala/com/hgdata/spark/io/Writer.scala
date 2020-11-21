@@ -56,7 +56,7 @@ object Writer {
     )
 
     /** Hudi Hive, delta, keyed off `uuid` and `date_stamp` columns. */
-    def newIntentDelta: Writer = new Writer.HudiHive(
+    def intentInsertDelta: Writer = new Writer.HudiHive(
       path = path,
       database = hiveDatabase,
       table = "intent",
