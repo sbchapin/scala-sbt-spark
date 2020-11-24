@@ -91,7 +91,7 @@ EMR_STEPS = [
                 'intent-update',
                 '--input-alternate-urls-path', f's3://{CORE_IP_BUCKET}/{CORE_IP_ALTERNATE_URL_PREFIX}',
                 '--input-prepped-intent-path', f"s3://{TRANSFORMED_BUCKET}/{TRANSFORMED_INTENT_PREPPED_PREFIX}",
-                '--input-prepped-intent-since', "{{ ds }}",
+                '--input-prepped-intent-since', "{{ ds_nodash }}",
                 '--output', f's3://{CORE_IP_BUCKET}/{CORE_IP_INTENT_PREFIX}',
                 '--output-database', 'hg_intent',
              ],

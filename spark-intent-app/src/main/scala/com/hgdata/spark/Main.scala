@@ -3,10 +3,9 @@ package com.hgdata.spark
 import java.time.Instant
 
 import com.hgdata.generated.BuildInfo
-import com.hgdata.picocli.{InputCommandLineOpts, InstantString, OutputCommandlineOpts}
+import com.hgdata.picocli.{ITypeConverters, InputCommandLineOpts, OutputCommandlineOpts}
 import com.hgdata.spark.io.Reader
 import com.hgdata.spark.runnables.{IntentPrep, IntentUpdate, Passthrough}
-import org.apache.hudi.DataSourceWriteOptions
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
 
@@ -79,8 +78,8 @@ object Main {
     @CommandLine.Option(
       names = Array("--input-prepped-intent-since"),
       required = true,
-      description = Array("""At what point in time to read input from prepped intent hudi table.  Must be a valid yyyyMMddHHmmSS format."""),
-      converter = Array(classOf[InstantString])
+      description = Array("""At what point in time to read input from prepped intent hudi table.  Must be a valid yyyyMMddHHmmss or yyyy-mm-dd format."""),
+      converter = Array(classOf[ITypeConverters.HudiInstant], classOf[ITypeConverters.ZonedTimestamp], classOf[ITypeConverters.Date])
     )
     var preppedIntentInputSince: Instant = _
 

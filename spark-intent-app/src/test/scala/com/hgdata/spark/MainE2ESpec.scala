@@ -3,31 +3,30 @@ package com.hgdata.spark
 import com.hgdata.spark.io.Reader
 import com.hgdata.spark.testutil.{IntentFixtures, SparkHelpers}
 import org.apache.spark.sql.SaveMode
-import org.scalatest.FunSpec
+import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
-class MainE2ESpec extends FunSpec with SparkHelpers {
+class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
 
-  describe("The Main entrypoint") {
+  object AUD {
+    val command = "alternate-url-deltify"
+    val inputPath = s"./tmp/in/$command/2020-01-01" // timestamp necessary to create "run_id"
+    val outputPath = s"./tmp/out/$command"
+  }
 
-    object AUD {
-      val command = "alternate-url-deltify"
-      val inputPath = s"./tmp/in/$command/2020-01-01" // timestamp necessary to create "run_id"
-      val outputPath = s"./tmp/out/$command"
-    }
+  object IP {
+    val command = "intent-prep"
+    val inputPath = s"./tmp/in/$command"
+    val outputPath = s"./tmp/out/$command"
+  }
 
-    object IP {
-      val command = "intent-prep"
-      val inputPath = s"./tmp/in/$command"
-      val outputPath = s"./tmp/out/$command"
-    }
+  object IN {
+    val command = "intent-update"
+    val inputAlternateUrlsPath: String = AUD.outputPath
+    val inputIntentPrepPath: String = IP.outputPath
+    val outputPath = s"./tmp/out/$command"
+  }
 
-    object IN {
-      val command = "intent-update"
-      val inputAlternateUrlsPath: String = AUD.outputPath
-      val inputIntentPrepPath: String = IP.outputPath
-      val outputPath = s"./tmp/out/$command"
-    }
-
+  override protected def beforeAll(): Unit = {
     // Set up I/O needed for tests:
     withTestSpark { spark =>
       import spark.implicits._
@@ -42,10 +41,14 @@ class MainE2ESpec extends FunSpec with SparkHelpers {
 
       // For intent prep:
       val intentRaw = Seq(
-        IntentFixtures.of(IntentFixtures.hgRow)
+        IntentFixtures.header,
+        IntentFixtures.hgRow
       ).toDF
       intentRaw.write.mode(SaveMode.Overwrite).text(IP.inputPath)
     }
+  }
+
+  describe("The Main entrypoint") {
 
     describe(s"running the ${AUD.command} command") {
       it ("should not explode catastrophically") {

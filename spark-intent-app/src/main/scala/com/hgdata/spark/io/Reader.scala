@@ -1,13 +1,9 @@
 package com.hgdata.spark.io
 
-import java.time.{Instant, ZoneId}
-import java.time.format.DateTimeFormatter
+import java.time.Instant
 
-import com.hgdata.picocli.InstantString
-import com.hgdata.spark
-import com.hgdata.spark.io
+import com.hgdata.picocli.ITypeConverters.HudiInstant
 import org.apache.hudi.DataSourceReadOptions
-import org.apache.hudi.client.HoodieReadClient
 import org.apache.spark.sql.functions.{col, typedLit}
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, DataFrameReader, SparkSession}
@@ -42,7 +38,7 @@ object Reader {
     /** Hudi, delta incremental snapshot, (delta) latest alternate URLs. */
     def newAlternateUrls(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
       path = inputPath,
-      beginInstant = InstantString.format(since)
+      beginInstant = HudiInstant.format(since)
     )
 
     /** Hudi, holistic snapshot, (all) latest prepped intent. */
@@ -54,7 +50,7 @@ object Reader {
     /** Hudi, delta incremental, (delta) latest prepped intent. */
     def newPreppedIntent(since: Instant)(implicit s: SparkSession): DeltaReader = new Reader.HudiIncremental(
       path = inputPath,
-      beginInstant = InstantString.format(since)
+      beginInstant = HudiInstant.format(since)
     )
 
     /** CSV, customized for reading raw intent format. */
