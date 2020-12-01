@@ -2,7 +2,7 @@ package com.hgdata.spark.io
 
 import com.typesafe.scalalogging.LazyLogging
 import org.apache.hudi.DataSourceWriteOptions
-import org.apache.hudi.config.HoodieWriteConfig
+import org.apache.hudi.config.{HoodieCompactionConfig, HoodieWriteConfig}
 import org.apache.hudi.hive.MultiPartKeysValueExtractor
 import org.apache.spark.sql.functions._
 import org.apache.spark.sql.{AnalysisException, DataFrame, SaveMode, SparkSession}
@@ -37,7 +37,7 @@ object Writer {
       idField = "uuid",
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
-      operation = DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL // Bulk Insert
+      operation = HudiWriteOperation.BulkInsert
     )
 
     /**
@@ -63,7 +63,9 @@ object Writer {
       idField = "uuid",
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
-      operation = DataSourceWriteOptions.INSERT_OPERATION_OPT_VAL
+      operation = HudiWriteOperation.Insert(
+        splitSize = 3000000 // @ Roughly 2Bil intent per delivery, this makes 600 files
+      )
     )
 
   }
@@ -83,6 +85,21 @@ object Writer {
     }
   }
 
+  sealed trait HudiWriteOperation {
+    def configName: String
+  }
+  object HudiWriteOperation {
+    case object Upsert extends HudiWriteOperation {
+      override val configName: String = DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL
+    }
+    case class Insert(splitSize: Long = HoodieCompactionConfig.DEFAULT_COPY_ON_WRITE_TABLE_INSERT_SPLIT_SIZE.toLong) extends HudiWriteOperation {
+      override val configName: String = DataSourceWriteOptions.INSERT_OPERATION_OPT_VAL
+    }
+    case object BulkInsert extends HudiWriteOperation {
+      override val configName: String = DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL
+    }
+  }
+
   /**
     * Write generically to hudi and hive table.
     *
@@ -99,7 +116,7 @@ object Writer {
                  idField: String,
                  partitionField: String,
                  precombineField: String,
-                 operation: String,
+                 operation: HudiWriteOperation,
                  database: Option[String] = None) extends Writer with LazyLogging {
 
     private val hasDefaultPartition = partitionField == "default"
@@ -107,13 +124,19 @@ object Writer {
     private val hudiOpts: Map[String, String] = Map(
       // Static:
       DataSourceWriteOptions.TABLE_TYPE_OPT_KEY -> DataSourceWriteOptions.COW_TABLE_TYPE_OPT_VAL, // Copy On Write
-      DataSourceWriteOptions.OPERATION_OPT_KEY -> operation,
+      DataSourceWriteOptions.OPERATION_OPT_KEY -> operation.configName,
       // Dynamic:
       HoodieWriteConfig.TABLE_NAME -> table,
       DataSourceWriteOptions.RECORDKEY_FIELD_OPT_KEY -> idField,
       DataSourceWriteOptions.PARTITIONPATH_FIELD_OPT_KEY -> partitionField,
       DataSourceWriteOptions.PRECOMBINE_FIELD_OPT_KEY -> precombineField
     )
+
+    private val maybeHudiInsertOpts: Option[Map[String, String]] = Some(operation).collect {
+      case HudiWriteOperation.Insert(splitSize) => Map(
+        HoodieCompactionConfig.COPY_ON_WRITE_TABLE_INSERT_SPLIT_SIZE -> splitSize.toString
+      )
+    }
 
     private val maybeHiveOpts: Option[Map[String, String]] = database.map { db =>
       Map(
@@ -128,7 +151,10 @@ object Writer {
       )
     }
 
-    private val opts: Map[String, String] = maybeHiveOpts.foldLeft(hudiOpts) { _ ++ _ }
+    private val opts: Map[String, String] =
+      hudiOpts ++
+        maybeHudiInsertOpts.getOrElse(Map.empty) ++
+        maybeHiveOpts.getOrElse(Map.empty)
 
     logger.debug(s"""Generic hudi hive writer ${this.getClass.getSimpleName} configured to output to ${path} and ${table} with the following options: ${opts}""")
 
@@ -185,7 +211,7 @@ object Writer {
     )
 
     /** Underlying writer for the dataset we are writing to - will persist any information issued. */
-    def writer(operation: String) = new Writer.HudiHive(
+    def writer(operation: HudiWriteOperation) = new Writer.HudiHive(
       path = path,
       database = database,
       table = table,
@@ -204,7 +230,7 @@ object Writer {
         case e: AnalysisException =>
           logger.warn(s"Failed to read from $reader - assuming this is the first time writing to that dataset; will initialize with bulk inserts.  Reader failure follows, though you can likely ignore it:", e)
           // Bulk insert everything
-          writer(DataSourceWriteOptions.BULK_INSERT_OPERATION_OPT_VAL).write(desired)
+          writer(HudiWriteOperation.BulkInsert).write(desired)
           return // don't continue to deltas
       }
 
@@ -229,7 +255,7 @@ object Writer {
         )
 
       // Upsert (just) the delta
-      writer(DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL).write(upserts)
+      writer(HudiWriteOperation.Upsert).write(upserts)
     }
   }
 }
