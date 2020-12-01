@@ -44,7 +44,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
         IntentFixtures.header,
         IntentFixtures.hgRow
       ).toDF
-      intentRaw.write.mode(SaveMode.Overwrite).text(IP.inputPath)
+      intentRaw.repartition(1).write.mode(SaveMode.Overwrite).text(IP.inputPath)
     }
   }
 
