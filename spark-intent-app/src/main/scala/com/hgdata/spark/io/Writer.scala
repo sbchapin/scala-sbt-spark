@@ -19,7 +19,7 @@ object Writer {
     val preppedIntentPartition: String = "date_stamp"
     val preppedIntentPartitionCount: Int = countPartitions(preppedIntentPartition)
 
-    val alternateUrlsPartition: String = "" // Single "default" partition
+    val alternateUrlsPartition: String = "default" // Single "default" partition, will be added as a column for hive to partition on
     val alternateUrlsPartitionCount: Int = countPartitions(alternateUrlsPartition)
   }
 
@@ -102,6 +102,8 @@ object Writer {
                  operation: String,
                  database: Option[String] = None) extends Writer with LazyLogging {
 
+    private val hasDefaultPartition = partitionField == "default"
+
     private val hudiOpts: Map[String, String] = Map(
       // Static:
       DataSourceWriteOptions.TABLE_TYPE_OPT_KEY -> DataSourceWriteOptions.COW_TABLE_TYPE_OPT_VAL, // Copy On Write
@@ -131,7 +133,14 @@ object Writer {
     logger.debug(s"""Generic hudi hive writer ${this.getClass.getSimpleName} configured to output to ${path} and ${table} with the following options: ${opts}""")
 
     override def write(df: DataFrame): Unit = {
-      df.write
+      val output = if (hasDefaultPartition) {
+        // This is necessary to allow Hive a partkey - otherwise presto (Athena) cannot query it.
+        df.withColumn("default", lit("default"))
+      } else {
+        df
+      }
+      output
+        .write
         .format("org.apache.hudi")
         .options(opts)
         .mode(SaveMode.Append)
