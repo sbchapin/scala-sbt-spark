@@ -97,7 +97,7 @@ class MainCLISpec extends FunSpec {
       describe(s"with an `$intentUpdateSubcommand` subcommand") {
 
         val inputAUArgs = Array("--input-alternate-urls-path", "au")
-        val inputIPArgs = Array("--input-prepped-intent-path", "pi", "--input-prepped-intent-since", "19991231235959") // 1 second before Y2k
+        val inputIPArgs = Array("--input-prepped-intent-path", "pi", "--input-prepped-intent-since", "1999-12-31T23:59:59+00:00") // 1 second before Y2k
         val baseArgs = Array(intentUpdateSubcommand) ++ inputAUArgs ++ inputIPArgs ++ outputArgs
 
         it("should fail if passed just the subcommand") {

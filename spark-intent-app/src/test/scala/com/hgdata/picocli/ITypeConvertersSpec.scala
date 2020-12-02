@@ -3,7 +3,7 @@ package com.hgdata.picocli
 import java.time.Instant
 import java.time.format.DateTimeParseException
 
-import com.hgdata.picocli.ITypeConverters.{Date, HudiInstant, ZonedTimestamp}
+import com.hgdata.picocli.ITypeConverters.{Date, HudiInstant, LenientInstant, ZonedTimestamp}
 import org.scalatest.FunSpec
 
 class ITypeConvertersSpec extends FunSpec {
@@ -56,5 +56,31 @@ class ITypeConvertersSpec extends FunSpec {
     it("should not parse time formats") {
       assertThrows[DateTimeParseException] { ZonedTimestamp.convert("1970-01-01 00:00:00") }
     }
+  }
+
+  describe("A LenientInstant converter") {
+
+    val lenientInstant = new LenientInstant
+
+    it("should parse yyyy-MM-ddTHH:mm:ssUTC") {
+      assert(lenientInstant.convert("1970-01-01T00:00:00Z") == Instant.EPOCH)
+    }
+
+    it("should parse yyyy-MM-ddTHH:mm:ssZ") {
+      assert(lenientInstant.convert("1970-01-01T00:00:00Z") == Instant.EPOCH)
+    }
+
+    it("should parse yyyy-MM-ddTHH:mm:ss+TT:TT") {
+      assert(lenientInstant.convert("1970-01-01T00:00:00+00:00") == Instant.EPOCH)
+    }
+
+    it("should parse yyyyMMddHHmmss") {
+      assert(lenientInstant.convert("19700101000000") == Instant.EPOCH)
+    }
+
+    it("should parse yyyy-MM-dd") {
+      assert(lenientInstant.convert("1970-01-01") == Instant.EPOCH)
+    }
+
   }
 }

@@ -78,8 +78,8 @@ object Main {
     @CommandLine.Option(
       names = Array("--input-prepped-intent-since"),
       required = true,
-      description = Array("""At what point in time to read input from prepped intent hudi table.  Must be a valid yyyyMMddHHmmss or yyyy-mm-dd format."""),
-      converter = Array(classOf[ITypeConverters.HudiInstant], classOf[ITypeConverters.ZonedTimestamp], classOf[ITypeConverters.Date])
+      description = Array("""At what point in time to read input from prepped intent hudi table.  Must be a valid yyyyMMddHHmmss, iso zoned timestamp, or yyyy-mm-dd format."""),
+      converter = Array(classOf[ITypeConverters.LenientInstant])
     )
     var preppedIntentInputSince: Instant = _
 

@@ -1,15 +1,30 @@
 package com.hgdata.picocli
 
-import java.time.{Instant, ZoneId}
 import java.time.format.{DateTimeFormatter, DateTimeFormatterBuilder}
 import java.time.temporal.ChronoField
+import java.time.{Instant, ZoneId}
 
 import picocli.CommandLine
 
+import scala.util.Try
+
 object ITypeConverters {
 
-  class HudiInstant extends CommandLine.ITypeConverter[Instant] {
-    def convert(value: String): Instant = HudiInstant.convert(value)
+  class LenientInstant extends CommandLine.ITypeConverter[Instant] {
+
+    private val strategies = Seq(
+      HudiInstant.convert(_),
+      ZonedTimestamp.convert(_),
+      Date.convert(_)
+    )
+
+    def convert(value: String): Instant = {
+      for (strategy <- strategies) {
+        val attempt = Try(strategy(value))
+        if (attempt.isSuccess) return attempt.get
+      }
+      throw new CommandLine.TypeConversionException(s"Could not convert ${value} to a value of type 'instant'.")
+    }
   }
 
   object HudiInstant {
@@ -23,10 +38,6 @@ object ITypeConverters {
     def convert(value: String): Instant = Instant.from(formatter.parse(value))
   }
 
-  class ZonedTimestamp extends CommandLine.ITypeConverter[Instant] {
-    def convert(value: String): Instant = ZonedTimestamp.convert(value)
-  }
-
   object ZonedTimestamp {
 
     private val formatter = DateTimeFormatter.ISO_OFFSET_DATE_TIME.withZone(ZoneId.of("GMT")) // "zoneless"
@@ -34,11 +45,6 @@ object ITypeConverters {
     def format(instant: Instant): String = formatter.format(instant)
 
     def convert(value: String): Instant = Instant.from(formatter.parse(value))
-  }
-
-
-  class Date extends CommandLine.ITypeConverter[Instant] {
-    def convert(value: String): Instant = Date.convert(value)
   }
 
   object Date {
