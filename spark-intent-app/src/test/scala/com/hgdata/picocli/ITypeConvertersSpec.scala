@@ -62,10 +62,6 @@ class ITypeConvertersSpec extends FunSpec {
 
     val lenientInstant = new LenientInstant
 
-    it("should parse yyyy-MM-ddTHH:mm:ssUTC") {
-      assert(lenientInstant.convert("1970-01-01T00:00:00Z") == Instant.EPOCH)
-    }
-
     it("should parse yyyy-MM-ddTHH:mm:ssZ") {
       assert(lenientInstant.convert("1970-01-01T00:00:00Z") == Instant.EPOCH)
     }
