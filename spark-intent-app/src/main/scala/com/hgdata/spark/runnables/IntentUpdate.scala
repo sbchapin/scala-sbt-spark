@@ -21,7 +21,7 @@ class IntentUpdate(preppedIntentReader: DeltaReader,
       .select(
         preppedIntent("*"),
         alternateUrls("alternate_url"),
-        coalesce(preppedIntent("domain"), alternateUrls("url")).as("url"),
+        coalesce(alternateUrls("url"), preppedIntent("domain")).as("url"),
         alternateUrls("alternate_url_type")
       )
       .withColumnRenamed("domain", "intent_domain")
