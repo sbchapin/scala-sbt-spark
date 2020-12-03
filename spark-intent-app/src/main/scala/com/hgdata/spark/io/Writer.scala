@@ -64,7 +64,7 @@ object Writer {
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
       operation = HudiWriteOperation.Insert(
-        splitSize = Some(3000000) // @ Roughly 2Bil intent per delivery, this makes 600 files
+        splitSize = Some(5000000) // @ Roughly 2Bil intent per delivery, this makes 400 files (before bloom index calculations)
       )
     )
 
