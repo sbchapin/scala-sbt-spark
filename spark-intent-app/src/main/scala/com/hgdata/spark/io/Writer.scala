@@ -64,7 +64,7 @@ object Writer {
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
       operation = HudiWriteOperation.Insert(
-        splitSize = 3000000 // @ Roughly 2Bil intent per delivery, this makes 600 files
+        splitSize = Some(3000000) // @ Roughly 2Bil intent per delivery, this makes 600 files
       )
     )
 
@@ -92,7 +92,7 @@ object Writer {
     case object Upsert extends HudiWriteOperation {
       override val configName: String = DataSourceWriteOptions.UPSERT_OPERATION_OPT_VAL
     }
-    case class Insert(splitSize: Long = HoodieCompactionConfig.DEFAULT_COPY_ON_WRITE_TABLE_INSERT_SPLIT_SIZE.toLong) extends HudiWriteOperation {
+    case class Insert(splitSize: Option[Long] = None) extends HudiWriteOperation {
       override val configName: String = DataSourceWriteOptions.INSERT_OPERATION_OPT_VAL
     }
     case object BulkInsert extends HudiWriteOperation {
@@ -133,8 +133,9 @@ object Writer {
     )
 
     private val maybeHudiInsertOpts: Option[Map[String, String]] = Some(operation).collect {
-      case HudiWriteOperation.Insert(splitSize) => Map(
-        HoodieCompactionConfig.COPY_ON_WRITE_TABLE_INSERT_SPLIT_SIZE -> splitSize.toString
+      case HudiWriteOperation.Insert(Some(splitSize)) => Map(
+        HoodieCompactionConfig.COPY_ON_WRITE_TABLE_INSERT_SPLIT_SIZE -> splitSize.toString,
+        HoodieCompactionConfig.COPY_ON_WRITE_TABLE_AUTO_SPLIT_INSERTS -> false.toString
       )
     }
 
