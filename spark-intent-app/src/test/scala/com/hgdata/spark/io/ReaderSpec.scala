@@ -1,5 +1,6 @@
 package com.hgdata.spark.io
 
+import com.hgdata.generated.BuildInfo
 import com.hgdata.spark.testutil.{IOHelpers, IntentFixtures, SparkHelpers}
 import org.apache.spark.sql.SparkSession
 import org.apache.spark.sql.functions.lit
@@ -19,18 +20,19 @@ class ReaderSpec extends FunSpec with SparkHelpers with IOHelpers {
             metros.schema.names.contains("country") &&
             metros.schema.names.contains("country_code") &&
             metros.schema.names.contains("metro_area") &&
-            metros.schema.names.contains("state")
+            metros.schema.names.contains("state") &&
+            metros.schema.names.contains("metro_version")
         )
         val abilene = metros.filter(metros("metro_area") === "abilene, texas area").head
         assert(
           abilene(0) == "Abilene" &&
             abilene(1) == null &&
             abilene(2) == null &&
-            abilene(3) == "US" &&
-            abilene(4) == "United States" &&
+            abilene(3) == "United States" &&
+            abilene(4) == "US" &&
             abilene(5) == "abilene, texas area" &&
-            abilene(6) == "TX"
-
+            abilene(6) == "TX" &&
+            abilene(7) == BuildInfo.version
         )
       }
     }

@@ -2,9 +2,10 @@ package com.hgdata.spark.io
 
 import java.time.Instant
 
+import com.hgdata.generated.BuildInfo
 import com.hgdata.picocli.ITypeConverters.HudiInstant
 import org.apache.hudi.DataSourceReadOptions
-import org.apache.spark.sql.functions.{col, typedLit}
+import org.apache.spark.sql.functions.{col, typedLit, lit}
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, DataFrameReader, SparkSession}
 
@@ -180,7 +181,10 @@ object Reader {
     override def read: DataFrame = {
       val metroJsons: Seq[String] = Source.fromInputStream(getClass.getResourceAsStream("/metro_lookup.json")).getLines.toSeq
       import spark.implicits._
-      spark.read.json(metroJsons.toDS)
+      spark
+        .read
+        .json(metroJsons.toDS)
+        .withColumn("metro_version", lit(BuildInfo.version)) // Appends this jar's version on each row for traceability
     }
   }
 
