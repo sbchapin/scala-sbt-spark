@@ -8,6 +8,8 @@ import org.apache.spark.sql.functions.{col, typedLit}
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, DataFrameReader, SparkSession}
 
+import scala.io.Source
+
 trait Reader {
   def read: DataFrame
   def map(x: DataFrame => DataFrame): Reader = {
@@ -55,9 +57,13 @@ object Reader {
 
     /** CSV, customized for reading raw intent format. */
     def rawIntent(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
+
     /** Parquet, holistic, grabs the run ID from path */
     def altUrl(implicit s: SparkSession): Reader = new Reader.Parquet(inputPath)
       .map { _.withColumn("run_id", typedLit(Pathing.getDatePartition(inputPath).orNull)) }
+
+    /** CSV, holistic, uses locally-versioned src/main/resources/metro_lookup.json  */
+    def metroLookup(implicit s: SparkSession): Reader = new Reader.MetroLookup
   }
 
 
@@ -167,6 +173,14 @@ object Reader {
         .schema(schema)
         .csv(path)
         .select(columnMapping:_* )
+    }
+  }
+
+  class MetroLookup(implicit spark: SparkSession) extends Reader {
+    override def read: DataFrame = {
+      val metroJsons: Seq[String] = Source.fromInputStream(getClass.getResourceAsStream("/metro_lookup.json")).getLines.toSeq
+      import spark.implicits._
+      spark.read.json(metroJsons.toDS)
     }
   }
 

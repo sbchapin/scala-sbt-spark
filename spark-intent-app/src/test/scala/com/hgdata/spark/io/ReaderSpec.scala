@@ -2,10 +2,39 @@ package com.hgdata.spark.io
 
 import com.hgdata.spark.testutil.{IOHelpers, IntentFixtures, SparkHelpers}
 import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.functions.lit
 import org.scalatest.FunSpec
 
 class ReaderSpec extends FunSpec with SparkHelpers with IOHelpers {
 
+  describe("A RawIntent Reader") {
+    it("should use local resource file to create valid dataframe") {
+      withTestSpark { implicit spark: SparkSession =>
+        val reader: Reader = new Reader.MetroLookup
+        val metros = reader.read
+        assert(
+          metros.schema.names.contains("city_1") &&
+            metros.schema.names.contains("city_2") &&
+            metros.schema.names.contains("city_3") &&
+            metros.schema.names.contains("country") &&
+            metros.schema.names.contains("country_code") &&
+            metros.schema.names.contains("metro_area") &&
+            metros.schema.names.contains("state")
+        )
+        val abilene = metros.filter(metros("metro_area") === "abilene, texas area").head
+        assert(
+          abilene(0) == "Abilene" &&
+            abilene(1) == null &&
+            abilene(2) == null &&
+            abilene(3) == "US" &&
+            abilene(4) == "United States" &&
+            abilene(5) == "abilene, texas area" &&
+            abilene(6) == "TX"
+
+        )
+      }
+    }
+  }
   describe("A RawIntent Reader") {
 
     it("should ignore header, parsing row data with quoted values, quote-escaping quotes, and commas") {
