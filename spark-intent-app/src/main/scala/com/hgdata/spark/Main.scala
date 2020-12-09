@@ -1,8 +1,11 @@
 package com.hgdata.spark
 
+import java.time.Instant
+
 import com.hgdata.generated.BuildInfo
-import com.hgdata.spark.io.{Reader, Writer}
-import com.typesafe.scalalogging.LazyLogging
+import com.hgdata.picocli.{ITypeConverters, InputCommandLineOpts, OutputCommandlineOpts}
+import com.hgdata.spark.io.Reader
+import com.hgdata.spark.runnables.{IntentPrep, IntentUpdate, Passthrough}
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
 
@@ -12,57 +15,95 @@ import picocli.CommandLine
   version = Array(BuildInfo.version + " (" + BuildInfo.builtAtString + ")"),
   description = Array(BuildInfo.description)
 )
-object Main extends Runnable with LazyLogging {
-  @CommandLine.Option(
-    names = Array("-i", "--input"),
-    required = true,
-    description = Array("""Path to write input.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
+object Main {
+
+  @CommandLine.Command(
+    name = "intent-prep",
+    description = Array(
+      "Ingest a delivery of raw intent data into the 'Intent Prepped' delta table.",
+      "Will only ever append to the delta table (insert only)."
+    )
   )
-  private[spark] var inputPath: String = _
-
-  @CommandLine.Option(
-    names = Array("-o", "--output"),
-    required = true,
-    description = Array("""Path to write output.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
-  )
-  private[spark] var outputPath: String = _
-
-  @CommandLine.Option(
-    names = Array("--database"),
-    required = false,
-    description = Array("""Hive database to use to persist & fetch schema. If not provided, will not use hive.""")
-  )
-  private[spark] var hiveDatabase: String = _
-
-  private[spark] val defaultConfig = Map(
-    "spark.sql.hive.convertMetastoreParquet" -> "false",
-    "spark.serializer" -> "org.apache.spark.serializer.KryoSerializer"
-  )
-
-  def main(args: Array[String]): Unit = {
-    val exitCode = new CommandLine(this).execute(args:_*)
-    if (exitCode != 0) throw new RuntimeException(s"Process exited with status code ${exitCode}")
-  }
-
-  @throws[Exception]
-  override def run(): Unit = {
-    SparkSessionManager(defaultConfig).withSpark { implicit spark: SparkSession =>
-      // I/O, lazily wired:
-      lazy val rawIntentReader: Reader = new Reader.RawIntent(inputPath)
-      lazy val preppedIntentWriter: Writer = new Writer.Parquet(outputPath)
-      lazy val preppedIntentDeltaWriter: Writer = new Writer.HudiHive(
-        path = outputPath,
-        database = Option(hiveDatabase),
-        table = "intent_prepped",
-        idField = "uuid",
-        partitionField = "date_stamp",
-        precombineField = "date_stamp"
+  object IntentPrepSubcommand extends SparkRunnable with InputCommandLineOpts with OutputCommandlineOpts {
+    override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
+      val prep = new IntentPrep(
+        reader = readers.rawIntent,
+        writer = writers.preppedIntentDelta
       )
-
-      // Jobs, lazily wired:
-      lazy val prep = new IntentPrep(rawIntentReader, preppedIntentDeltaWriter)
-
       prep.run()
     }
+  }
+
+  @CommandLine.Command(
+    name = "alternate-url-deltify",
+    description = Array(
+      "Ingest the latest state of Alternate URLs from the pipeline, persisting to the Alternate URLs delta table.",
+      "Will persist only the difference (inserts, updates, and deletes)."
+    )
+  )
+  object AlternateUrlPrepSubcommand extends SparkRunnable with InputCommandLineOpts with OutputCommandlineOpts {
+    override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
+      val deltify = new Passthrough(
+        reader = readers.altUrl,
+        writer = writers.alternateUrlDelta
+      )
+      deltify.run()
+    }
+  }
+
+
+  @CommandLine.Command(
+    name = "intent-update",
+    description = Array(
+      "Ingest any net new prepped intent data, enriching it with the latest Alternate URLs.",
+      "Typically run after ingesting new intent data into 'Intent Prepped'.",
+      "Will persist updates to intent rows if run on a before-processed dataset, otherwise will add new records."
+    )
+  )
+  object IntentUpdateSubcommand extends SparkRunnable with OutputCommandlineOpts {
+    @CommandLine.Option(
+      names = Array("--input-alternate-urls-path"),
+      required = true,
+      description = Array("""Path to read input for alternate url hudi table.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
+    )
+    var alternateUrlInputPath: String = _
+
+    @CommandLine.Option(
+      names = Array("--input-prepped-intent-path"),
+      required = true,
+      description = Array("""Path to read input for prepped intent hudi table.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
+    )
+    var preppedIntentInputPath: String = _
+
+    @CommandLine.Option(
+      names = Array("--input-prepped-intent-since"),
+      required = true,
+      description = Array("""At what point in time to read input from prepped intent hudi table.  Must be a valid yyyyMMddHHmmss, iso zoned timestamp, or yyyy-mm-dd format."""),
+      converter = Array(classOf[ITypeConverters.LenientInstant])
+    )
+    var preppedIntentInputSince: Instant = _
+
+    private lazy val intentReaders = new Reader.ReaderHelpers(preppedIntentInputPath)
+    private lazy val urlReaders = new Reader.ReaderHelpers(alternateUrlInputPath)
+
+    override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
+      val update = new IntentUpdate(
+        preppedIntentReader = intentReaders.newPreppedIntent(preppedIntentInputSince),
+        alternateUrlReader = urlReaders.allAlternateUrls,
+        writer = writers.intentInsertDelta
+      )
+      update.run()
+    }
+  }
+
+  private[spark] lazy val commandLine: CommandLine =
+    new CommandLine(this)
+      .addSubcommand(IntentPrepSubcommand)
+      .addSubcommand(AlternateUrlPrepSubcommand)
+      .addSubcommand(IntentUpdateSubcommand)
+
+  def main(args: Array[String]): Unit = {
+    val exitCode = commandLine.execute(args:_*)
+    if (exitCode != 0) throw new RuntimeException(s"Process exited with status code ${exitCode}")
   }
 }

@@ -68,6 +68,7 @@ lazy val sparkIntentApp = (project in file("spark-intent-app"))
     baseSettings,
     assemblySettings,
     buildInfoSettings,
+    Test / parallelExecution := false, // Concurrent spark tests
     // Dependencies:
     libraryDependencies ++= baseDeps,
     libraryDependencies ++= sparkDeps,

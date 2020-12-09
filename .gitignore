@@ -11,6 +11,7 @@
 /build/
 /bin/
 /out/
+/tmp/
 target/
 /lib_managed/
 **/__pycache__/
