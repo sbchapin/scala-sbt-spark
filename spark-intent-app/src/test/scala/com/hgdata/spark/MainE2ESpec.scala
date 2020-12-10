@@ -40,8 +40,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
       // For alternate-url-deltify:
       val alts = Seq(
         ("subdomain.hginsights.com", "hginsights.com", "distinct_child_entity"),
-        ("hginsights.info",          "hginsights.com", "alias"),
-        ("hginsights.com",           "hginsights.com", "alias")
+        ("hginsights.info",          "hginsights.com", "alias")
       ).toDF("alternate_url", "url", "alternate_url_type")
       alts.write.mode(SaveMode.Overwrite).parquet(AUD.inputPath)
 
@@ -117,9 +116,9 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
             assert(out.count() == 1)
             val record = out.head
             assert(
-              record.getAs[String]("url") == "hginsights.com" &&
-              record.getAs[String]("metro_area") == "santa barbara, california area" &&
-              record.getAs[String]("state") == "CA"
+              record.getAs[String]("url") == "hginsights.com" && // ensure that domain is carried despit missing mapping
+              record.getAs[String]("metro_area") == "santa barbara, california area" && // expected metro joiner
+              record.getAs[String]("state") == "CA" // ensures that metro data mapped
             )
           }
         }
