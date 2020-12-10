@@ -32,13 +32,13 @@ class IntentUpdate(preppedIntentReader: DeltaReader,
         coalesce(alternateUrls("url"), preppedIntent("domain")).as("url"),
         alternateUrls("alternate_url_type"),
         // Metro:
-        metroLookup("city_1"),
-        metroLookup("city_2"),
-        metroLookup("city_3"),
-        metroLookup("state"),
+        metroLookup("metro_version"),
         metroLookup("country_code"),
         metroLookup("country"),
-        metroLookup("metro_version")
+        metroLookup("state"),
+        metroLookup("city_1"),
+        metroLookup("city_2"),
+        metroLookup("city_3")
       )
       .withColumnRenamed("domain", "intent_domain")
     writer.write(intent)
