@@ -38,8 +38,8 @@ object Reader {
       numPartitions = Writer.WriterHelpers.alternateUrlsPartitionCount
     )
 
-    /** Hudi, holistic snapshot, (all) latest metro lookups. */
-    def allMetroLookups(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
+    /** Hudi, holistic snapshot, (all) latest metro lookup. */
+    def allMetroLookup(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
       path = inputPath,
       numPartitions = Writer.WriterHelpers.metroLookupPartitionCount
     )

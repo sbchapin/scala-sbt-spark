@@ -55,7 +55,7 @@ object Main {
   @CommandLine.Command(
     name = "metro-lookup-deltify",
     description = Array(
-      "Ingest the latest state of Metro lookups, persisting to the metro lookups delta table.",
+      "Ingest the latest state of the metro lookup, persisting to the metro lookup delta table.",
       "Will persist only the difference (inserts, updates, and deletes)."
     )
   )
@@ -116,7 +116,7 @@ object Main {
       val update = new IntentUpdate(
         preppedIntentReader = intentReaders.deltaHudi(preppedIntentInputSince),
         alternateUrlReader = urlReaders.allAlternateUrls,
-        metroLookupReader = metroReaders.allMetroLookups,
+        metroLookupReader = metroReaders.allMetroLookup,
         writer = writers.intentInsertDelta
       )
       update.run()

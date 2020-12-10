@@ -66,7 +66,7 @@ object Writer {
     def metroLookupDelta(implicit spark: SparkSession): Writer = new Writer.HudiHiveHolistic(
       path = path,
       database = hiveDatabase,
-      table = "metro_lookups",
+      table = "metro_lookup",
       idField = "metro_area",
       changeFields = Seq("city_1", "city_2", "city_3", "country", "country_code", "state"),
       partitionField = WriterHelpers.metroLookupPartition,
