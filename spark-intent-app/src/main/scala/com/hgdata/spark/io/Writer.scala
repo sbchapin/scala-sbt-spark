@@ -21,6 +21,9 @@ object Writer {
 
     val alternateUrlsPartition: String = "default" // Single "default" partition, will be added as a column for hive to partition on
     val alternateUrlsPartitionCount: Int = countPartitions(alternateUrlsPartition)
+
+    val metroLookupPartition: String = "default" // Single "default" partition, will be added as a column for hive to partition on
+    val metroLookupPartitionCount: Int = countPartitions(metroLookupPartition)
   }
 
   /** A collection of various factory functions that create writers. */
@@ -54,6 +57,22 @@ object Writer {
       partitionField = WriterHelpers.alternateUrlsPartition,
       precombineField = "run_id"
     )
+
+    /**
+      * Hudi Hive, delta, keyed off `alternate_url` column.
+      * Takes a holistic metro lookup dataset and calculates deltas to update, including deletes and inserts.
+      * Always operates off the latest snapshot.
+      */
+    def metroLookupDelta(implicit spark: SparkSession): Writer = new Writer.HudiHiveHolistic(
+      path = path,
+      database = hiveDatabase,
+      table = "metro_lookups",
+      idField = "metro_area",
+      changeFields = Seq("city_1", "city_2", "city_3", "country", "country_code", "state"),
+      partitionField = WriterHelpers.metroLookupPartition,
+      precombineField = "metro_version"
+    )
+
 
     /** Hudi Hive, delta, keyed off `uuid` and `date_stamp` columns. */
     def intentInsertDelta: Writer = new Writer.HudiHive(

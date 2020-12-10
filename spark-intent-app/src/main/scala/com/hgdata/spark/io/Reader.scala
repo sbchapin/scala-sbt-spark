@@ -177,6 +177,7 @@ object Reader {
     }
   }
 
+  /** Read a generic metro JSON format from a path, adding the version of this Jar */
   class MetroLookup(implicit spark: SparkSession) extends Reader {
     override def read: DataFrame = {
       val metroJsons: Seq[String] = Source.fromInputStream(getClass.getResourceAsStream("/metro_lookup.json")).getLines.toSeq

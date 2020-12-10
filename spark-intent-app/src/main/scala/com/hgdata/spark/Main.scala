@@ -5,6 +5,7 @@ import java.time.Instant
 import com.hgdata.generated.BuildInfo
 import com.hgdata.picocli.{ITypeConverters, InputCommandLineOpts, OutputCommandlineOpts}
 import com.hgdata.spark.io.Reader
+import com.hgdata.spark.io.Reader.ReaderHelpers
 import com.hgdata.spark.runnables.{IntentPrep, IntentUpdate, Passthrough}
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
@@ -51,6 +52,23 @@ object Main {
     }
   }
 
+  @CommandLine.Command(
+    name = "metro-lookup-deltify",
+    description = Array(
+      "Ingest the latest state of Metro lookups, persisting to the metro lookups delta table.",
+      "Will persist only the difference (inserts, updates, and deletes)."
+    )
+  )
+  object MetroLookupPrepSubcommand extends SparkRunnable with OutputCommandlineOpts {
+    lazy val readers = new ReaderHelpers(null)
+    override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
+      val deltify = new Passthrough(
+        reader = readers.metroLookup,
+        writer = writers.metroLookupDelta
+      )
+      deltify.run()
+    }
+  }
 
   @CommandLine.Command(
     name = "intent-update",
@@ -100,6 +118,7 @@ object Main {
     new CommandLine(this)
       .addSubcommand(IntentPrepSubcommand)
       .addSubcommand(AlternateUrlPrepSubcommand)
+      .addSubcommand(MetroLookupPrepSubcommand)
       .addSubcommand(IntentUpdateSubcommand)
 
   def main(args: Array[String]): Unit = {

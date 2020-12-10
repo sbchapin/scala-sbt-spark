@@ -13,6 +13,11 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
     val outputPath = s"./tmp/out/$command"
   }
 
+  object MLD {
+    val command = "metro-lookup-deltify"
+    val outputPath = s"./tmp/out/$command"
+  }
+
   object IP {
     val command = "intent-prep"
     val inputPath = s"./tmp/in/$command"
@@ -60,6 +65,20 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
           ))
           withTestSpark { implicit spark =>
             new Reader.HudiSnapshot(AUD.outputPath, 1).read.show()
+          }
+        }
+      }
+    }
+
+    describe(s"running the ${MLD.command} command") {
+      it ("should not explode catastrophically") {
+        withTestSparkSysProps {
+          Main.main(Array(
+            MLD.command,
+            "-o", MLD.outputPath
+          ))
+          withTestSpark { implicit spark =>
+            new Reader.HudiSnapshot(MLD.outputPath, 1).read.show()
           }
         }
       }

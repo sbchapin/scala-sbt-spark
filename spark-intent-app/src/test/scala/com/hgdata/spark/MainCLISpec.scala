@@ -12,6 +12,7 @@ class MainCLISpec extends FunSpec {
     val main = Main
     val intentPrepSubcommand = "intent-prep"
     val altUrlDeltifySubcommand = "alternate-url-deltify"
+    val metrolLookupDeltifySubcommand = "metro-lookup-deltify"
     val intentUpdateSubcommand = "intent-update"
     val inputArgs = Array("--input", "i")
     val outputArgs = Array("--output", "o")
@@ -40,7 +41,7 @@ class MainCLISpec extends FunSpec {
           }
         }
 
-        it("should be able to parse required --input and --output") {
+        it("should be able to parse required --output") {
           main.commandLine.parseArgs(baseArgs: _*)
           assert(main.IntentPrepSubcommand.inputPath == "i" && main.IntentPrepSubcommand.outputPath == "o")
         }
@@ -91,6 +92,27 @@ class MainCLISpec extends FunSpec {
         it("should be able to parse --output-database") {
           main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
           assert(main.AlternateUrlPrepSubcommand.outputHiveDatabase == "od")
+        }
+      }
+
+      describe(s"with an `$metrolLookupDeltifySubcommand` subcommand") {
+
+        val baseArgs = Array(metrolLookupDeltifySubcommand) ++ outputArgs
+
+        it("should fail if passed just the subcommand") {
+          assertThrows[CommandLine.MissingParameterException] {
+            main.commandLine.parseArgs(metrolLookupDeltifySubcommand)
+          }
+        }
+
+        it("should be able to parse required --output") {
+          main.commandLine.parseArgs(baseArgs: _*)
+          assert(main.MetroLookupPrepSubcommand.outputPath == "o")
+        }
+
+        it("should be able to parse --output-database") {
+          main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
+          assert(main.MetroLookupPrepSubcommand.outputHiveDatabase == "od")
         }
       }
 
