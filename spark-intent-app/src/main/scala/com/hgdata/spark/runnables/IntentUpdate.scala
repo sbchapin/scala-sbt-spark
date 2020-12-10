@@ -5,10 +5,12 @@ import org.apache.spark.sql.functions._
 
 class IntentUpdate(preppedIntentReader: DeltaReader,
                    alternateUrlReader: HolisticReader,
+                   metroLookupReader: HolisticReader,
                    writer: Writer) extends Runnable {
 
   private lazy val preppedIntent = preppedIntentReader.read
   private lazy val alternateUrls = alternateUrlReader.read
+  private lazy val metroLookup = metroLookupReader.read
 
   /** Enrich the partial intent dataset with all alternate URLs. */
   override def run(): Unit = {

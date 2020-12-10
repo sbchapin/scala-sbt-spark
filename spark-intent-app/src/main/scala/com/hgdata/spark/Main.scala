@@ -2,7 +2,7 @@ package com.hgdata.spark
 
 import java.time.Instant
 
-import com.hgdata.generated.BuildInfo
+import com.hgdata.generated.BuildInfo // if this is unhappy, `sbt compile` to generate anew
 import com.hgdata.picocli.{ITypeConverters, InputCommandLineOpts, OutputCommandlineOpts}
 import com.hgdata.spark.io.Reader
 import com.hgdata.spark.io.Reader.ReaderHelpers
@@ -87,6 +87,13 @@ object Main {
     var alternateUrlInputPath: String = _
 
     @CommandLine.Option(
+      names = Array("--input-metro-lookup-path"),
+      required = true,
+      description = Array("""Path to read input for metro lookup hudi table.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
+    )
+    var metroLookupInputPath: String = _
+
+    @CommandLine.Option(
       names = Array("--input-prepped-intent-path"),
       required = true,
       description = Array("""Path to read input for prepped intent hudi table.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
@@ -103,11 +110,13 @@ object Main {
 
     private lazy val intentReaders = new Reader.ReaderHelpers(preppedIntentInputPath)
     private lazy val urlReaders = new Reader.ReaderHelpers(alternateUrlInputPath)
+    private lazy val metroReaders = new Reader.ReaderHelpers(metroLookupInputPath)
 
     override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
       val update = new IntentUpdate(
-        preppedIntentReader = intentReaders.newPreppedIntent(preppedIntentInputSince),
+        preppedIntentReader = intentReaders.deltaHudi(preppedIntentInputSince),
         alternateUrlReader = urlReaders.allAlternateUrls,
+        metroLookupReader = metroReaders.allMetroLookups,
         writer = writers.intentInsertDelta
       )
       update.run()

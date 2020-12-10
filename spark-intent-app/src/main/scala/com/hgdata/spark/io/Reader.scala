@@ -38,10 +38,10 @@ object Reader {
       numPartitions = Writer.WriterHelpers.alternateUrlsPartitionCount
     )
 
-    /** Hudi, delta incremental snapshot, (delta) latest alternate URLs. */
-    def newAlternateUrls(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
+    /** Hudi, holistic snapshot, (all) latest metro lookups. */
+    def allMetroLookups(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
       path = inputPath,
-      beginInstant = HudiInstant.format(since)
+      numPartitions = Writer.WriterHelpers.metroLookupPartitionCount
     )
 
     /** Hudi, holistic snapshot, (all) latest prepped intent. */
@@ -50,8 +50,8 @@ object Reader {
       numPartitions = Writer.WriterHelpers.preppedIntentPartitionCount
     )
 
-    /** Hudi, delta incremental, (delta) latest prepped intent. */
-    def newPreppedIntent(since: Instant)(implicit s: SparkSession): DeltaReader = new Reader.HudiIncremental(
+    /** Hudi, delta incremental snapshot, (delta) latest of any dataset at an input path from a specified instant onwards. */
+    def deltaHudi(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
       path = inputPath,
       beginInstant = HudiInstant.format(since)
     )

@@ -27,6 +27,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
   object IN {
     val command = "intent-update"
     val inputAlternateUrlsPath: String = AUD.outputPath
+    val inputMetroLookupPath: String = MLD.outputPath
     val inputIntentPrepPath: String = IP.outputPath
     val outputPath = s"./tmp/out/$command"
   }
@@ -105,6 +106,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
           Main.main(Array(
             IN.command,
             "--input-alternate-urls-path", IN.inputAlternateUrlsPath,
+            "--input-metro-lookup-path", IN.inputMetroLookupPath,
             "--input-prepped-intent-path", IN.inputIntentPrepPath,
             "--input-prepped-intent-since", "19991231235959", // Y2K
             "-o", IN.outputPath

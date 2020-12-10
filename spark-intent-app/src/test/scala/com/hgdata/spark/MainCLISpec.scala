@@ -119,8 +119,9 @@ class MainCLISpec extends FunSpec {
       describe(s"with an `$intentUpdateSubcommand` subcommand") {
 
         val inputAUArgs = Array("--input-alternate-urls-path", "au")
+        val inputMLArgs = Array("--input-metro-lookup-path", "ml")
         val inputIPArgs = Array("--input-prepped-intent-path", "pi", "--input-prepped-intent-since", "1999-12-31T23:59:59+00:00") // 1 second before Y2k
-        val baseArgs = Array(intentUpdateSubcommand) ++ inputAUArgs ++ inputIPArgs ++ outputArgs
+        val baseArgs = Array(intentUpdateSubcommand) ++ inputAUArgs ++ inputMLArgs ++ inputIPArgs ++ outputArgs
 
         it("should fail if passed just the subcommand") {
           assertThrows[CommandLine.MissingParameterException] {
@@ -131,6 +132,12 @@ class MainCLISpec extends FunSpec {
         it("should fail if passed just the subcommand and alternate urls input arg") {
           assertThrows[CommandLine.MissingParameterException] {
             main.commandLine.parseArgs(Array(intentUpdateSubcommand) ++ inputAUArgs: _*)
+          }
+        }
+
+        it("should fail if passed just the subcommand and metro lookup input arg") {
+          assertThrows[CommandLine.MissingParameterException] {
+            main.commandLine.parseArgs(Array(intentUpdateSubcommand) ++ inputMLArgs: _*)
           }
         }
 
@@ -146,7 +153,7 @@ class MainCLISpec extends FunSpec {
           }
         }
 
-        it("should be able to parse required alternate url, prepped intent input args, and output arg") {
+        it("should be able to parse required alternate url, metro lookup, prepped intent input args, and output arg") {
           val y2k = new Calendar.Builder()
             .set(Calendar.YEAR, 2000)
             .setTimeZone(TimeZone.getTimeZone(ZoneId.of("GMT")))
@@ -156,6 +163,7 @@ class MainCLISpec extends FunSpec {
           main.commandLine.parseArgs(baseArgs: _*)
           assert(
             main.IntentUpdateSubcommand.alternateUrlInputPath == "au" &&
+            main.IntentUpdateSubcommand.metroLookupInputPath == "ml" &&
             main.IntentUpdateSubcommand.preppedIntentInputPath == "pi" &&
             main.IntentUpdateSubcommand.outputPath == "o" &&
             main.IntentUpdateSubcommand.preppedIntentInputSince == y2k.toInstant
