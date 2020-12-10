@@ -20,11 +20,25 @@ class IntentUpdate(preppedIntentReader: DeltaReader,
         preppedIntent("domain") === alternateUrls("alternate_url"),
         "left"
       )
+      .join(
+        broadcast(metroLookup),
+        preppedIntent("metro_area") === metroLookup("metro_area"),
+        "left"
+      )
       .select(
         preppedIntent("*"),
+        // Alt URLs:
         alternateUrls("alternate_url"),
         coalesce(alternateUrls("url"), preppedIntent("domain")).as("url"),
-        alternateUrls("alternate_url_type")
+        alternateUrls("alternate_url_type"),
+        // Metro:
+        metroLookup("city_1"),
+        metroLookup("city_2"),
+        metroLookup("city_3"),
+        metroLookup("state"),
+        metroLookup("country_code"),
+        metroLookup("country"),
+        metroLookup("metro_version")
       )
       .withColumnRenamed("domain", "intent_domain")
     writer.write(intent)
