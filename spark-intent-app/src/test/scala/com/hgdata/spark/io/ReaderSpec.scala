@@ -3,7 +3,6 @@ package com.hgdata.spark.io
 import com.hgdata.generated.BuildInfo
 import com.hgdata.spark.testutil.{IOHelpers, IntentFixtures, SparkHelpers}
 import org.apache.spark.sql.SparkSession
-import org.apache.spark.sql.functions.lit
 import org.scalatest.FunSpec
 
 class ReaderSpec extends FunSpec with SparkHelpers with IOHelpers {
@@ -53,7 +52,7 @@ class ReaderSpec extends FunSpec with SparkHelpers with IOHelpers {
             firstRow(4) == "programming languages" &&
             firstRow(5) == "scala" &&
             firstRow(6) == 80 &&
-            firstRow(7) == null &&
+            firstRow(7) == "santa barbara, california area" &&
             firstRow(8) == 0 &&
             firstRow(9) == "united states" &&
             firstRow(10) == "2020-10-17" &&

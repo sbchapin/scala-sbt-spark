@@ -2,7 +2,7 @@ package com.hgdata.spark
 
 import com.hgdata.spark.io.Reader
 import com.hgdata.spark.testutil.{IntentFixtures, SparkHelpers}
-import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.{DataFrame, SaveMode}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
 class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
@@ -101,7 +101,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
     }
 
     describe(s"running the ${IN.command} command") {
-      it ("should not explode catastrophically") {
+      it ("should not explode catastrophically and produce expected data mapped correctly") {
         withTestSparkSysProps {
           Main.main(Array(
             IN.command,
@@ -112,7 +112,15 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
             "-o", IN.outputPath
           ))
           withTestSpark { implicit spark =>
-            new Reader.HudiSnapshot(IN.outputPath, 1).read.show()
+            val out: DataFrame = new Reader.HudiSnapshot(IN.outputPath, 1).read.cache
+            out.show()
+            assert(out.count() == 1)
+            val record = out.head
+            assert(
+              record.getAs[String]("url") == "hginsights.com" &&
+              record.getAs[String]("metro_area") == "santa barbara, california area" &&
+              record.getAs[String]("state") == "CA"
+            )
           }
         }
       }
