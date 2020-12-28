@@ -2,7 +2,7 @@ package com.hgdata.spark
 
 import com.hgdata.spark.io.Reader
 import com.hgdata.spark.testutil.{IntentFixtures, SparkHelpers}
-import org.apache.spark.sql.SaveMode
+import org.apache.spark.sql.{DataFrame, SaveMode}
 import org.scalatest.{BeforeAndAfterAll, FunSpec}
 
 class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
@@ -10,6 +10,11 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
   object AUD {
     val command = "alternate-url-deltify"
     val inputPath = s"./tmp/in/$command/2020-01-01" // timestamp necessary to create "run_id"
+    val outputPath = s"./tmp/out/$command"
+  }
+
+  object MLD {
+    val command = "metro-lookup-deltify"
     val outputPath = s"./tmp/out/$command"
   }
 
@@ -22,6 +27,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
   object IN {
     val command = "intent-update"
     val inputAlternateUrlsPath: String = AUD.outputPath
+    val inputMetroLookupPath: String = MLD.outputPath
     val inputIntentPrepPath: String = IP.outputPath
     val outputPath = s"./tmp/out/$command"
   }
@@ -34,8 +40,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
       // For alternate-url-deltify:
       val alts = Seq(
         ("subdomain.hginsights.com", "hginsights.com", "distinct_child_entity"),
-        ("hginsights.info",          "hginsights.com", "alias"),
-        ("hginsights.com",           "hginsights.com", "alias")
+        ("hginsights.info",          "hginsights.com", "alias")
       ).toDF("alternate_url", "url", "alternate_url_type")
       alts.write.mode(SaveMode.Overwrite).parquet(AUD.inputPath)
 
@@ -65,6 +70,20 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
       }
     }
 
+    describe(s"running the ${MLD.command} command") {
+      it ("should not explode catastrophically") {
+        withTestSparkSysProps {
+          Main.main(Array(
+            MLD.command,
+            "-o", MLD.outputPath
+          ))
+          withTestSpark { implicit spark =>
+            new Reader.HudiSnapshot(MLD.outputPath, 1).read.show()
+          }
+        }
+      }
+    }
+
     describe(s"running the ${IP.command} command") {
       it ("should not explode catastrophically") {
         withTestSparkSysProps {
@@ -81,17 +100,26 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
     }
 
     describe(s"running the ${IN.command} command") {
-      it ("should not explode catastrophically") {
+      it ("should not explode catastrophically and produce expected data mapped correctly") {
         withTestSparkSysProps {
           Main.main(Array(
             IN.command,
             "--input-alternate-urls-path", IN.inputAlternateUrlsPath,
+            "--input-metro-lookup-path", IN.inputMetroLookupPath,
             "--input-prepped-intent-path", IN.inputIntentPrepPath,
             "--input-prepped-intent-since", "19991231235959", // Y2K
             "-o", IN.outputPath
           ))
           withTestSpark { implicit spark =>
-            new Reader.HudiSnapshot(IN.outputPath, 1).read.show()
+            val out: DataFrame = new Reader.HudiSnapshot(IN.outputPath, 1).read.cache
+            out.show()
+            assert(out.count() == 1)
+            val record = out.head
+            assert(
+              record.getAs[String]("url") == "hginsights.com" && // ensure that domain is carried despit missing mapping
+              record.getAs[String]("metro_area") == "santa barbara, california area" && // expected metro joiner
+              record.getAs[String]("state") == "CA" // ensures that metro data mapped
+            )
           }
         }
       }

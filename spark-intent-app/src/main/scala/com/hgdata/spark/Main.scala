@@ -2,9 +2,10 @@ package com.hgdata.spark
 
 import java.time.Instant
 
-import com.hgdata.generated.BuildInfo
+import com.hgdata.generated.BuildInfo // if this is unhappy, `sbt compile` to generate anew
 import com.hgdata.picocli.{ITypeConverters, InputCommandLineOpts, OutputCommandlineOpts}
 import com.hgdata.spark.io.Reader
+import com.hgdata.spark.io.Reader.ReaderHelpers
 import com.hgdata.spark.runnables.{IntentPrep, IntentUpdate, Passthrough}
 import org.apache.spark.sql.SparkSession
 import picocli.CommandLine
@@ -51,6 +52,23 @@ object Main {
     }
   }
 
+  @CommandLine.Command(
+    name = "metro-lookup-deltify",
+    description = Array(
+      "Ingest the latest state of the metro lookup, persisting to the metro lookup delta table.",
+      "Will persist only the difference (inserts, updates, and deletes)."
+    )
+  )
+  object MetroLookupPrepSubcommand extends SparkRunnable with OutputCommandlineOpts {
+    lazy val readers = new ReaderHelpers(null)
+    override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
+      val deltify = new Passthrough(
+        reader = readers.metroLookup,
+        writer = writers.metroLookupDelta
+      )
+      deltify.run()
+    }
+  }
 
   @CommandLine.Command(
     name = "intent-update",
@@ -69,6 +87,13 @@ object Main {
     var alternateUrlInputPath: String = _
 
     @CommandLine.Option(
+      names = Array("--input-metro-lookup-path"),
+      required = true,
+      description = Array("""Path to read input for metro lookup hudi table.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
+    )
+    var metroLookupInputPath: String = _
+
+    @CommandLine.Option(
       names = Array("--input-prepped-intent-path"),
       required = true,
       description = Array("""Path to read input for prepped intent hudi table.  Can be any path your Spark installation supports, e.g. file, s3, hdfs, etc.""")
@@ -85,11 +110,13 @@ object Main {
 
     private lazy val intentReaders = new Reader.ReaderHelpers(preppedIntentInputPath)
     private lazy val urlReaders = new Reader.ReaderHelpers(alternateUrlInputPath)
+    private lazy val metroReaders = new Reader.ReaderHelpers(metroLookupInputPath)
 
     override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
       val update = new IntentUpdate(
-        preppedIntentReader = intentReaders.newPreppedIntent(preppedIntentInputSince),
+        preppedIntentReader = intentReaders.deltaHudi(preppedIntentInputSince),
         alternateUrlReader = urlReaders.allAlternateUrls,
+        metroLookupReader = metroReaders.allMetroLookup,
         writer = writers.intentInsertDelta
       )
       update.run()
@@ -100,6 +127,7 @@ object Main {
     new CommandLine(this)
       .addSubcommand(IntentPrepSubcommand)
       .addSubcommand(AlternateUrlPrepSubcommand)
+      .addSubcommand(MetroLookupPrepSubcommand)
       .addSubcommand(IntentUpdateSubcommand)
 
   def main(args: Array[String]): Unit = {

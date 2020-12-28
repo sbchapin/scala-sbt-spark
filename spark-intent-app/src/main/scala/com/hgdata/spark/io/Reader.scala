@@ -2,11 +2,14 @@ package com.hgdata.spark.io
 
 import java.time.Instant
 
+import com.hgdata.generated.BuildInfo
 import com.hgdata.picocli.ITypeConverters.HudiInstant
 import org.apache.hudi.DataSourceReadOptions
-import org.apache.spark.sql.functions.{col, typedLit}
+import org.apache.spark.sql.functions.{col, typedLit, lit}
 import org.apache.spark.sql.types.{IntegerType, StringType, StructField, StructType}
 import org.apache.spark.sql.{Column, DataFrame, DataFrameReader, SparkSession}
+
+import scala.io.Source
 
 trait Reader {
   def read: DataFrame
@@ -35,10 +38,10 @@ object Reader {
       numPartitions = Writer.WriterHelpers.alternateUrlsPartitionCount
     )
 
-    /** Hudi, delta incremental snapshot, (delta) latest alternate URLs. */
-    def newAlternateUrls(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
+    /** Hudi, holistic snapshot, (all) latest metro lookup. */
+    def allMetroLookup(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
       path = inputPath,
-      beginInstant = HudiInstant.format(since)
+      numPartitions = Writer.WriterHelpers.metroLookupPartitionCount
     )
 
     /** Hudi, holistic snapshot, (all) latest prepped intent. */
@@ -47,17 +50,21 @@ object Reader {
       numPartitions = Writer.WriterHelpers.preppedIntentPartitionCount
     )
 
-    /** Hudi, delta incremental, (delta) latest prepped intent. */
-    def newPreppedIntent(since: Instant)(implicit s: SparkSession): DeltaReader = new Reader.HudiIncremental(
+    /** Hudi, delta incremental snapshot, (delta) latest of any dataset at an input path from a specified instant onwards. */
+    def deltaHudi(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
       path = inputPath,
       beginInstant = HudiInstant.format(since)
     )
 
     /** CSV, customized for reading raw intent format. */
     def rawIntent(implicit s: SparkSession): Reader = new Reader.RawIntent(inputPath)
+
     /** Parquet, holistic, grabs the run ID from path */
     def altUrl(implicit s: SparkSession): Reader = new Reader.Parquet(inputPath)
       .map { _.withColumn("run_id", typedLit(Pathing.getDatePartition(inputPath).orNull)) }
+
+    /** CSV, holistic, uses locally-versioned src/main/resources/metro_lookup.json  */
+    def metroLookup(implicit s: SparkSession): Reader = new Reader.MetroLookup
   }
 
 
@@ -167,6 +174,18 @@ object Reader {
         .schema(schema)
         .csv(path)
         .select(columnMapping:_* )
+    }
+  }
+
+  /** Read a generic metro JSON format from a path, adding the version of this Jar */
+  class MetroLookup(implicit spark: SparkSession) extends Reader {
+    override def read: DataFrame = {
+      val metroJsons: Seq[String] = Source.fromInputStream(getClass.getResourceAsStream("/metro_lookup.json")).getLines.toSeq
+      import spark.implicits._
+      spark
+        .read
+        .json(metroJsons.toDS)
+        .withColumn("metro_version", lit(BuildInfo.version)) // Appends this jar's version on each row for traceability
     }
   }
 
