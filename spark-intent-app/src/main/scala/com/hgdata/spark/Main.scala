@@ -115,7 +115,7 @@ object Main {
     override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
       val update = new IntentUpdate(
         preppedIntentReader = intentReaders.deltaHudi(preppedIntentInputSince),
-        alternateUrlReader = urlReaders.allAlternateUrls,
+        aliasUrlReader = urlReaders.allAliasUrls,
         metroLookupReader = metroReaders.allMetroLookup,
         writer = writers.intentInsertDelta
       )
