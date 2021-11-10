@@ -38,6 +38,16 @@ object Reader {
       numPartitions = Writer.WriterHelpers.alternateUrlsPartitionCount
     )
 
+    /** Derivative of Hudi, holistic snapshot, (all) latest URL aliases (alternate URLs of type "alias"). */
+    def allAliasUrls(implicit spark: SparkSession): HolisticReader = new HolisticReader {
+      override def read: DataFrame = {
+        import spark.implicits._
+        allAlternateUrls
+          .read
+          .where('alternate_url_type === "alias")
+      }
+    }
+
     /** Hudi, holistic snapshot, (all) latest metro lookup. */
     def allMetroLookup(implicit spark: SparkSession): HolisticReader = new Reader.HudiSnapshot(
       path = inputPath,

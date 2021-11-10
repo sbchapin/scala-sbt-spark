@@ -4,20 +4,20 @@ import com.hgdata.spark.io.{DeltaReader, HolisticReader, Writer}
 import org.apache.spark.sql.functions._
 
 class IntentUpdate(preppedIntentReader: DeltaReader,
-                   alternateUrlReader: HolisticReader,
+                   aliasUrlReader: HolisticReader,
                    metroLookupReader: HolisticReader,
                    writer: Writer) extends Runnable {
 
   private lazy val preppedIntent = preppedIntentReader.read
-  private lazy val alternateUrls = alternateUrlReader.read
+  private lazy val aliasUrls = aliasUrlReader.read
   private lazy val metroLookup = metroLookupReader.read
 
   /** Enrich the partial intent dataset with all alternate URLs. */
   override def run(): Unit = {
     val intent = preppedIntent
       .join(
-        broadcast(alternateUrls),
-        preppedIntent("domain") === alternateUrls("alternate_url"),
+        broadcast(aliasUrls),
+        preppedIntent("domain") === aliasUrls("alternate_url"),
         "left"
       )
       .join(
@@ -28,9 +28,9 @@ class IntentUpdate(preppedIntentReader: DeltaReader,
       .select(
         preppedIntent("*"),
         // Alt URLs:
-        alternateUrls("alternate_url"),
-        coalesce(alternateUrls("url"), preppedIntent("domain")).as("url"),
-        alternateUrls("alternate_url_type"),
+        aliasUrls("alternate_url"),
+        coalesce(aliasUrls("url"), preppedIntent("domain")).as("url"),
+        aliasUrls("alternate_url_type"),
         // Metro:
         metroLookup("metro_version"),
         metroLookup("country_code"),
