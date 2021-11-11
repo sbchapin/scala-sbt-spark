@@ -53,7 +53,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
     }
   }
 
-  describe("The Main entrypoint") {
+  ignore("The Main entrypoint") {
 
     describe(s"running the ${AltUrlDeltify.command} command") {
       it ("should not explode catastrophically") {
