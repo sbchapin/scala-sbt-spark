@@ -103,10 +103,18 @@ object Main {
     @CommandLine.Option(
       names = Array("--input-prepped-intent-since"),
       required = true,
-      description = Array("""At what point in time to read input from prepped intent hudi table.  Must be a valid yyyyMMddHHmmss, iso zoned timestamp, or yyyy-mm-dd format."""),
+      description = Array("""At what point in time to read input from prepped intent hudi table (start of date range).  Must be a valid yyyyMMddHHmmss, iso zoned timestamp, or yyyy-mm-dd format."""),
       converter = Array(classOf[ITypeConverters.LenientInstant])
     )
     var preppedIntentInputSince: Instant = _
+
+    @CommandLine.Option(
+      names = Array("--input-prepped-intent-until"),
+      required = false,
+      description = Array("""At what point in time to read input to prepped intent hudi table (end of date range).  Must be a valid yyyyMMddHHmmss, iso zoned timestamp, or yyyy-mm-dd format."""),
+      converter = Array(classOf[ITypeConverters.LenientInstant])
+    )
+    var preppedIntentInputUntil: Instant = _
 
     private lazy val intentReaders = new Reader.ReaderHelpers(preppedIntentInputPath)
     private lazy val urlReaders = new Reader.ReaderHelpers(alternateUrlInputPath)
@@ -114,7 +122,7 @@ object Main {
 
     override def run(): Unit = withDefaultSpark { implicit spark: SparkSession =>
       val update = new IntentUpdate(
-        preppedIntentReader = intentReaders.deltaHudi(preppedIntentInputSince),
+        preppedIntentReader = intentReaders.deltaHudi(preppedIntentInputSince, Option(preppedIntentInputUntil)),
         aliasUrlReader = urlReaders.allAliasUrls,
         metroLookupReader = metroReaders.allMetroLookup,
         writer = writers.intentInsertDelta

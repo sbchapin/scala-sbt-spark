@@ -108,6 +108,7 @@ class MainE2ESpec extends FunSpec with BeforeAndAfterAll with SparkHelpers {
             "--input-metro-lookup-path", IntentUpdate.inputMetroLookupPath,
             "--input-prepped-intent-path", IntentUpdate.inputIntentPrepPath,
             "--input-prepped-intent-since", "19991231235959", // Y2K
+            "--input-prepped-intent-until", "20200101010000", // Start of 2020
             "-o", IntentUpdate.outputPath
           ))
           withTestSpark { implicit spark =>

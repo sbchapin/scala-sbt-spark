@@ -120,7 +120,11 @@ class MainCLISpec extends FunSpec {
 
         val inputAUArgs = Array("--input-alternate-urls-path", "au")
         val inputMLArgs = Array("--input-metro-lookup-path", "ml")
-        val inputIPArgs = Array("--input-prepped-intent-path", "pi", "--input-prepped-intent-since", "1999-12-31T23:59:59+00:00") // 1 second before Y2k
+        val inputIPArgs = Array(
+          "--input-prepped-intent-path", "pi",
+          "--input-prepped-intent-since", "1999-12-31T23:59:59+00:00", // 1 second before Y2k
+          "--input-prepped-intent-until", "2000-01-01T00:00:00+00:00" // 1 second after Y2k
+        )
         val baseArgs = Array(intentUpdateSubcommand) ++ inputAUArgs ++ inputMLArgs ++ inputIPArgs ++ outputArgs
 
         it("should fail if passed just the subcommand") {
@@ -154,11 +158,14 @@ class MainCLISpec extends FunSpec {
         }
 
         it("should be able to parse required alternate url, metro lookup, prepped intent input args, and output arg") {
-          val y2k = new Calendar.Builder()
+          val y2kBuilder = new Calendar.Builder()
             .set(Calendar.YEAR, 2000)
             .setTimeZone(TimeZone.getTimeZone(ZoneId.of("GMT")))
-            .build()
-          y2k.add(Calendar.SECOND, -1) // 1 second before, in 1999
+
+          val y2kBefore = y2kBuilder.build()
+          y2kBefore.add(Calendar.SECOND, -1) // 1 second before, in 1999
+          val y2kAfter = y2kBuilder.build()
+          y2kAfter.add(Calendar.SECOND, -1) // 1 second before, in 1999
 
           main.commandLine.parseArgs(baseArgs: _*)
           assert(
@@ -166,7 +173,8 @@ class MainCLISpec extends FunSpec {
             main.IntentUpdateSubcommand.metroLookupInputPath == "ml" &&
             main.IntentUpdateSubcommand.preppedIntentInputPath == "pi" &&
             main.IntentUpdateSubcommand.outputPath == "o" &&
-            main.IntentUpdateSubcommand.preppedIntentInputSince == y2k.toInstant
+            main.IntentUpdateSubcommand.preppedIntentInputSince == y2kBefore.toInstant &&
+            main.IntentUpdateSubcommand.preppedIntentInputSince == y2kAfter.toInstant
           )
         }
 

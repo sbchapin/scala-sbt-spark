@@ -61,9 +61,10 @@ object Reader {
     )
 
     /** Hudi, delta incremental snapshot, (delta) latest of any dataset at an input path from a specified instant onwards. */
-    def deltaHudi(since: Instant)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
+    def deltaHudi(since: Instant, until: Option[Instant] = None)(implicit spark: SparkSession): DeltaReader = new Reader.HudiIncremental(
       path = inputPath,
-      beginInstant = HudiInstant.format(since)
+      beginInstant = HudiInstant.format(since),
+      endInstant = until.map(HudiInstant.format)
     )
 
     /** CSV, customized for reading raw intent format. */
