@@ -20,5 +20,12 @@ trait OutputCommandlineOpts {
   )
   var outputHiveDatabase: String = _
 
-  lazy val writers = new WriterHelpers(outputPath, Option(outputHiveDatabase))
+  @CommandLine.Option(
+    names = Array("--output-table"),
+    required = false,
+    description = Array("""Hive table to use to persist & fetch schema for output dataset. If not provided, will use a default.""")
+  )
+  var outputHiveTable: String = _
+
+  lazy val writers = new WriterHelpers(outputPath, Option(outputHiveDatabase), Option(outputHiveTable))
 }

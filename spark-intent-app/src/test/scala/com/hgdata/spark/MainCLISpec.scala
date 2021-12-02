@@ -17,6 +17,7 @@ class MainCLISpec extends FunSpec {
     val inputArgs = Array("--input", "i")
     val outputArgs = Array("--output", "o")
     val outputDatabaseArgs = Array("--output-database", "od")
+    val outputTableArgs = Array("--output-table", "ot")
 
     describe("when parsing args with picocli") {
 
@@ -49,6 +50,11 @@ class MainCLISpec extends FunSpec {
         it("should be able to parse --output-database") {
           main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
           assert(main.IntentPrepSubcommand.outputHiveDatabase == "od")
+        }
+
+        it("should be able to parse --output-table") {
+          main.commandLine.parseArgs(baseArgs ++ outputTableArgs: _*)
+          assert(main.IntentPrepSubcommand.outputHiveTable == "ot")
         }
 
         it("should be able to parse --help") {
@@ -93,6 +99,11 @@ class MainCLISpec extends FunSpec {
           main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
           assert(main.AlternateUrlPrepSubcommand.outputHiveDatabase == "od")
         }
+
+        it("should be able to parse --output-table") {
+          main.commandLine.parseArgs(baseArgs ++ outputTableArgs: _*)
+          assert(main.IntentPrepSubcommand.outputHiveTable == "ot")
+        }
       }
 
       describe(s"with an `$metrolLookupDeltifySubcommand` subcommand") {
@@ -110,9 +121,9 @@ class MainCLISpec extends FunSpec {
           assert(main.MetroLookupPrepSubcommand.outputPath == "o")
         }
 
-        it("should be able to parse --output-database") {
-          main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
-          assert(main.MetroLookupPrepSubcommand.outputHiveDatabase == "od")
+        it("should be able to parse --output-table") {
+          main.commandLine.parseArgs(baseArgs ++ outputTableArgs: _*)
+          assert(main.IntentPrepSubcommand.outputHiveTable == "ot")
         }
       }
 
@@ -181,6 +192,11 @@ class MainCLISpec extends FunSpec {
         it("should be able to parse --output-database") {
           main.commandLine.parseArgs(baseArgs ++ outputDatabaseArgs: _*)
           assert(main.IntentUpdateSubcommand.outputHiveDatabase == "od")
+        }
+
+        it("should be able to parse --output-table") {
+          main.commandLine.parseArgs(baseArgs ++ outputTableArgs: _*)
+          assert(main.IntentPrepSubcommand.outputHiveTable == "ot")
         }
       }
 

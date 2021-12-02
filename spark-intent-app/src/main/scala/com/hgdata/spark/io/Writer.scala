@@ -26,8 +26,18 @@ object Writer {
     val metroLookupPartitionCount: Int = countPartitions(metroLookupPartition)
   }
 
-  /** A collection of various factory functions that create writers. */
-  class WriterHelpers(path: String, hiveDatabase: Option[String] = None) {
+  /**
+    * A collection of various factory functions that create writers.
+    *
+    * @param path A path, s3/local/hdfs
+    * @param hiveDatabase a hive database to persist to
+    * @param hiveTable a hive table name (and a hudi table name) to persist to
+    */
+  class WriterHelpers(path: String,
+                      hiveDatabase: Option[String] = None,
+                      hiveTable: Option[String] = None) {
+
+    private def lastPathPart: Option[String] = Some(path.split('/').last).filter(_.nonEmpty)
 
     /** Parquet, holistic. */
     def preppedIntentWriter: Writer = new Writer.Parquet(path)
@@ -36,7 +46,7 @@ object Writer {
     def preppedIntentDelta: Writer = new Writer.HudiHive(
       path = path,
       database = hiveDatabase,
-      table = "intent_prepped",
+      table = hiveTable.getOrElse("intent_prepped"),
       idField = "uuid",
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
@@ -51,7 +61,7 @@ object Writer {
     def alternateUrlDelta(implicit spark: SparkSession): Writer = new Writer.HudiHiveHolistic(
       path = path,
       database = hiveDatabase,
-      table = "alternate_urls",
+      table = hiveTable.getOrElse("alternate_urls"),
       idField = "alternate_url",
       changeFields = Seq("url", "alternate_url_type"),
       partitionField = WriterHelpers.alternateUrlsPartition,
@@ -66,7 +76,7 @@ object Writer {
     def metroLookupDelta(implicit spark: SparkSession): Writer = new Writer.HudiHiveHolistic(
       path = path,
       database = hiveDatabase,
-      table = "metro_lookup",
+      table = hiveTable.getOrElse("metro_lookup"),
       idField = "metro_area",
       changeFields = Seq("city_1", "city_2", "city_3", "country", "country_code", "state"),
       partitionField = WriterHelpers.metroLookupPartition,
@@ -78,7 +88,7 @@ object Writer {
     def intentInsertDelta: Writer = new Writer.HudiHive(
       path = path,
       database = hiveDatabase,
-      table = "intent",
+      table = lastPathPart.getOrElse("intent"),
       idField = "uuid",
       partitionField = WriterHelpers.preppedIntentPartition,
       precombineField = "date_stamp",
