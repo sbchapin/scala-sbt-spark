@@ -18,6 +18,12 @@ target/
 *.jar
 *.class
 
+# VSCode
+.metals
+.vscode
+*.ipr
+*.iws
+
 # Intellij
 .idea
 *.iml
